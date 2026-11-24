@@ -33,8 +33,8 @@ _PT_LOAD, _PT_PHDR, _PHDR = 1, 6, struct.Struct("<IIQQQQQQ")
 _R_RELATIVE = 1027
 _RELA = struct.Struct("<QQQ")   # Elf64_Rela {r_offset, r_info, r_addend}; also a menu group entry {mid, leaf, page}
 _GROUP_BYTES = 0x2e0            # menu group: 16-byte header {id, title, count, 0}, 30 entries of 24 bytes
-_SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_entry.S", "og_sites.S")
-_HEADERS = ("og.h", "og_internal.h", "og_image.h", "og_sys.h", "og_menu.h")
+_SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_diag.c", "og_entry.S", "og_sites.S")  # [DEBUG-og2] og_diag.c
+_HEADERS = ("og.h", "og_internal.h", "og_image.h", "og_sys.h", "og_menu.h", "og_diag.h")
 _UXC_MAGIC, _UXC_ID_BIAS = b"uxc\x07", 0x1C000000
 _MENU_CALLBACKS = ("og_menu_getter", "og_menu_setter", "og_menu_commit", "og_menu_profile_enabled")
 _CFLAGS = ("-target", "aarch64-freestanding-none", "-mcpu=generic-neon-fp_armv8", "-mgeneral-regs-only",

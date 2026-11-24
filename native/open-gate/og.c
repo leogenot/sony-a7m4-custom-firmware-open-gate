@@ -8,6 +8,7 @@
 #include "og_internal.h"
 #include "og_sys.h"
 #include "og_config.h"
+#include "og_diag.h"   /* [DEBUG-og2] */
 
 #ifndef OG_SETTING_DIR
 #define OG_SETTING_DIR "/setting"
@@ -45,12 +46,20 @@ og_status og_record_save(og_mode mode)
 {
     og_record r = {OG_RECORD_MAGIC, OG_RECORD_SCHEMA, (uint32_t)mode, ~(uint32_t)mode};
     long fd = og_openat(temporary_path, OG_O_WRONLY | OG_O_CREAT | OG_O_TRUNC | OG_O_CLOEXEC, 0600);
-    if (fd < 0) return OG_NOT_SAVED;
+    if (fd < 0) { og_diag("save.open", (uint64_t)fd, 0, 0, 0); return OG_NOT_SAVED; }   /* [DEBUG-og2] */
     long n = og_write(fd, &r, sizeof r), synced = og_fsync(fd), closed = og_close(fd);
-    if (n != (long)sizeof r || synced || closed || og_rename(temporary_path, record_path)) return OG_NOT_SAVED;
-    if ((fd = og_openat(directory_path, OG_O_RDONLY | OG_O_CLOEXEC, 0)) < 0) return OG_NOT_SAVED;
+    long renamed = n == (long)sizeof r && !synced && !closed ? og_rename(temporary_path, record_path) : -1;
+    if (n != (long)sizeof r || synced || closed || renamed) {
+        og_diag("save.write", (uint64_t)n, (uint64_t)synced, (uint64_t)closed, (uint64_t)renamed);   /* [DEBUG-og2] */
+        return OG_NOT_SAVED;
+    }
+    if ((fd = og_openat(directory_path, OG_O_RDONLY | OG_O_CLOEXEC, 0)) < 0) {
+        og_diag("save.dir", (uint64_t)fd, 0, 0, 0);   /* [DEBUG-og2] */
+        return OG_NOT_SAVED;
+    }
     synced = og_fsync(fd);
     closed = og_close(fd);
+    if (synced || closed) og_diag("save.dirsync", (uint64_t)synced, (uint64_t)closed, 0, 0);   /* [DEBUG-og2] */
     return synced || closed ? OG_NOT_SAVED : OG_OK;
 }
 
@@ -80,21 +89,35 @@ static og_status reconcile(og_mode mode)
 
 void og_power_on(void)
 {
+    const volatile uint32_t *dial = native_mode();   /* [DEBUG-og2] */
+    og_diag("power_on", dial ? *dial : 0xffffffffu, (uint64_t)(uintptr_t)dial, __atomic_load_n(&busy, __ATOMIC_RELAXED),
+            __atomic_load_n(&record_state, __ATOMIC_RELAXED));
     if (in_movie() || __atomic_exchange_n(&busy, 1, __ATOMIC_ACQUIRE)) return;
     og_mode mode = load_once();
-    if (mode != OG_OFF || __atomic_load_n(&applied, __ATOMIC_RELAXED)) (void)reconcile(mode);
+    og_diag("power_on.mode", mode, __atomic_load_n(&applied, __ATOMIC_RELAXED), 0, 0);   /* [DEBUG-og2] */
+    if (mode != OG_OFF || __atomic_load_n(&applied, __ATOMIC_RELAXED)) {
+        og_status s = reconcile(mode);
+        og_diag("power_on.reconcile", mode, s, 0, 0);   /* [DEBUG-og2] */
+        og_diag_sync();
+    }
     __atomic_store_n(&busy, 0, __ATOMIC_RELEASE);
 }
 
 og_status og_select(og_mode mode)
 {
+    const volatile uint32_t *dial = native_mode();   /* [DEBUG-og2] */
+    og_diag("select", mode, dial ? *dial : 0xffffffffu, __atomic_load_n(&busy, __ATOMIC_RELAXED),
+            __atomic_load_n(&record_state, __ATOMIC_RELAXED));
     if ((unsigned)mode >= OG_MODE_COUNT) return OG_FOREIGN;
     if (in_movie()) return OG_WRONG_DIAL;
     if (__atomic_exchange_n(&busy, 1, __ATOMIC_ACQUIRE)) return OG_BUSY;
-    (void)load_once();
+    og_mode before = load_once();
     og_status s = reconcile(mode);
+    og_diag("select.reconcile", mode, before, s, 0);   /* [DEBUG-og2] */
     if (s == OG_OK) {
-        if (og_record_save(mode) != OG_OK) s = OG_NOT_SAVED;
+        og_status saved = og_record_save(mode);
+        og_diag("select.save", mode, saved, 0, 0);   /* [DEBUG-og2] */
+        if (saved != OG_OK) s = OG_NOT_SAVED;
         __atomic_store_n(&selected, (uint32_t)mode, __ATOMIC_RELAXED);
     }
     __atomic_store_n(&busy, 0, __ATOMIC_RELEASE);

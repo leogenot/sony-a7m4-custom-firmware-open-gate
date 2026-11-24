@@ -32,22 +32,24 @@
   "sha256": "c65cd34917923f575448cc0603dd7c2326da0af0e5c323043d090662dcdf351c"
  },
  "sources": {
-  "og.c": "d3487920508904dfd4295200dcb52fdb3781408e96579bbbfe06ee32e4cfc262",
-  "og_reconcile.c": "b57552cf865a4c074db99e1f258ae8a5e659acf6b7c51bbb3e0628578ca14ecc",
-  "og_mem.c": "e02554b73dbbbbee137db2f268fbe2edd85ea46aee50b78f06d06c74d1dd65c4",
+  "og.c": "e39b188b2f7b459f0ef51b855920b419daef807112602c9c9eed5a2bbb82ce6c",
+  "og_reconcile.c": "06dc426023915aa9c5abee727e71821065abf7caa713797d943f107de27fb04d",
+  "og_mem.c": "974aa0335f03412cacdff32994d406da3bbfc48c78fea59caa0bd8dc0c9c54b0",
   "og_util.c": "caf8fdf9e3f29420f44570a22cc0f7167c8a65c01124e529e246615d485e2d47",
-  "og_menu.c": "06d76805caa8d50ff26cbdad84610cbe5346f9cace9a449ca4047824e5429086",
+  "og_menu.c": "9da0eb285df71758e166f4c05447a0b46e0fcbcd19d80fc0d16c5c3b4cfc3ebb",
   "og_entry.S": "bb3b1e1ce81ba7aa905b25827627ce5462a714cef81df628fbce2fcd5899004b",
   "og_sites.S": "1657b32224cdc6e7d319550bc944486e03552b37a2f33d4da04143ea8795978d",
   "og.h": "960d23717fd58b48cffa9ce41a7a2da31db1e5d4d74cba38b89fd01493256599",
   "og_internal.h": "1070ca7d5b83312505a3752918802012477ac966959d46f9d16ee3bc59f7c8d7",
   "og_image.h": "ec3e2e4b13083afa85f9aec83c9a554cc8c4ff429bac861758e4b8e41972e48f",
   "og_sys.h": "d9376106c89f29fea29f2d374ef87b5dc30692f10920b5c8e18d7471b9d6db8a",
-  "og_menu.h": "b15ea440f53ae8e56026f15563406d0cdcc740793bb2463e965099781683667a"
+  "og_menu.h": "b15ea440f53ae8e56026f15563406d0cdcc740793bb2463e965099781683667a",
+  "og_diag.c": "979c485e1f1c76747abc65372539e9f3ce76ec4754f514eff2d91ca8b037c62d",
+  "og_diag.h": "134a78a88a0d59c11999c259724563b3409ab3e0d54d568560224dab7cb0ce22"
  },
  "module": {
-  "text_bytes": 37608,
-  "text_sha256": "c4b9f323cb6ec218204f7886bf1ec40f6af8fa80d060987e85d3bb34e8f03b9b",
+  "text_bytes": 41584,
+  "text_sha256": "b1340c162aacd57e7490bc4666caa412296015b75c88d755444efe9cfb1164c8",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {

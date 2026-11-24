@@ -7,6 +7,7 @@
  * the bytes it held at the start. When memory already matches the target, the call only reads.
  */
 #include "og_image.h"
+#include "og_diag.h"   /* [DEBUG-og2] */
 
 #define OG_MAX_PRESET_RUNS 1536u
 
@@ -85,9 +86,12 @@ static og_status put(og_mem *mem, const og_run *run, const uint8_t *bytes, uint8
 {
     uint8_t cur[OG_RUN_MAX];
     og_status s = og_mem_read(mem, (og_space)run->space, run->addr, cur, run->len);
+    if (s != OG_OK) og_diag("put.read", run->space, run->addr, run->len, s);   /* [DEBUG-og2] */
     if (s != OG_OK || og_same(cur, bytes, run->len)) return s;
     *mark |= TOUCHED;
-    return og_mem_write(mem, (og_space)run->space, run->addr, bytes, run->len);
+    s = og_mem_write(mem, (og_space)run->space, run->addr, bytes, run->len);
+    if (s != OG_OK) og_diag("put.write", run->space, run->addr, run->len, s);   /* [DEBUG-og2] */
+    return s;
 }
 
 typedef struct {
@@ -107,13 +111,22 @@ static og_status classify(job *j)
         const og_run *r = og_first_run(p);
         for (unsigned i = 0; i < h->preset[p].runs; i++, r = og_next_run(r), n++) {
             og_status s = og_mem_read(j->mem, (og_space)r->space, r->addr, cur, r->len);
-            if (s != OG_OK) return s;
+            if (s != OG_OK) {
+                og_diag("classify.read", p, i, r->space, ((uint64_t)r->addr << 16) | r->len);   /* [DEBUG-og2] */
+                return s;
+            }
             held[n] = og_same(cur, og_old(r), r->len) ? HELD_STOCK : NONE;
             for (unsigned k = 0; k < h->preset_count && held[n] == NONE; k++) {
                 const og_run *q = og_same_site(k, r);
                 if (q && og_same(cur, og_new(q), r->len)) held[n] = (uint8_t)(k + 1u);
             }
-            if (held[n] == NONE) return OG_FOREIGN;
+            if (held[n] == NONE) {   /* [DEBUG-og2] which site, what it holds, what stock is */
+                og_diag("classify.foreign", p, i, r->space, ((uint64_t)r->addr << 16) | r->len);
+                og_diag_bytes("classify.foreign.now", r->space, r->addr, cur, r->len);
+                og_diag_bytes("classify.foreign.stock", r->space, r->addr, og_old(r), r->len);
+                og_diag_bytes("classify.foreign.new", r->space, r->addr, og_new(r), r->len);
+                return OG_FOREIGN;
+            }
         }
     }
     return OG_OK;
@@ -162,16 +175,21 @@ static og_status transition(job *j)
 
 og_status og_reconcile(og_mode target)
 {
-    if ((unsigned)target >= OG_MODE_COUNT || !image_valid()) return OG_FOREIGN;
+    int valid = (unsigned)target < OG_MODE_COUNT && image_valid();
+    og_diag("reconcile", target, valid, og_header()->preset_count, og_header()->total_bytes);   /* [DEBUG-og2] */
+    if (!valid) return OG_FOREIGN;
     job j = {.target = NONE};
     og_status s = og_mem_begin(&j.mem);
+    og_diag("reconcile.begin", s, 0, 0, 0);   /* [DEBUG-og2] */
     if (s != OG_OK) return s;
     const og_image_header *h = og_header();
     for (unsigned p = 0; p < h->preset_count; p++)
         if (h->preset[p].mode == target) j.target = p;
     if (target != OG_OFF && j.target == NONE) s = OG_FOREIGN;
     if (s == OG_OK) s = classify(&j);
+    og_diag("reconcile.classify", s, j.target, 0, 0);   /* [DEBUG-og2] */
     if (s == OG_OK) s = transition(&j);
+    og_diag("reconcile.transition", s, j.target, 0, 0);   /* [DEBUG-og2] */
     og_mem_end(j.mem);
     return s;
 }
