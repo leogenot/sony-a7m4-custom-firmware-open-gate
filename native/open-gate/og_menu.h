@@ -8,7 +8,6 @@
 uint32_t og_menu_getter(void);              /* leaf +0x78: option shown as selected */
 void og_menu_setter(uint32_t raw);          /* leaf +0x80: browsing, no memory change */
 int og_menu_commit(uint32_t alias);         /* leaf +0x88: confirm, og_select; nonzero on success */
-uint32_t og_menu_enabled(uint32_t mid);     /* 0x1c14e6c filter: 1 = selectable; our item only in stills */
-uint32_t og_menu_profile_enabled(void);     /* profile +0x50: the same answer for our item */
+uint32_t og_menu_disabled(uint32_t mid);    /* 0x1c14e6c filter: 1 = disabled; our item in movie only */
 
 #endif

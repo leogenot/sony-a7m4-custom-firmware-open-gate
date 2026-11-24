@@ -1,4 +1,4 @@
-/* Host harness for native/open-gate/og_menu.c against a fake og.h, dial getter and previous enabled check.
+/* Host harness for native/open-gate/og_menu.c against a fake og.h, dial getter and previous disabled check.
  *
  *   og_menu_host
  *
@@ -33,14 +33,14 @@ og_status og_select(og_mode mode)
 
 og_mode og_selected(void) { return selected_mode; }
 
-/* --- fake dial getter and the previous head of the enabled chain ---------------------------------------------- */
+/* --- fake dial getter and the previous head of the disabled chain ---------------------------------------------- */
 static uint32_t dial;
 static int dial_missing;
 const volatile uint32_t *native_mode(void) { return dial_missing ? 0 : &dial; }
 
 static int previous_calls;
 static uint32_t previous_mid;
-uint32_t og_menu_previous_enabled(uint32_t mid)
+uint32_t og_menu_previous_disabled(uint32_t mid)
 {
     previous_calls++;
     previous_mid = mid;
@@ -86,14 +86,14 @@ int main(void)
           og_menu_commit(OG_MENU_ALIAS_BASE + OG_MODE_COUNT) == 0 && og_menu_commit(0xffffffffu) == 0 &&
               select_calls == calls);
 
-    /* enabled: 1 = selectable, so 1 in every dial position but movie; every other mid goes to the previous check */
+    /* disabled: 1 = the camera shows "currently disabled", so 1 in movie only; every other mid goes to the previous
+     * check */
     for (uint32_t d = 0; d < 6; d++) {
         dial = d;
-        CHECK("enabled is 0 exactly in movie", og_menu_enabled(OG_MENU_MID) == (d != OG_DIAL_MOVIE));
-        CHECK("the profile callback agrees", og_menu_profile_enabled() == (d != OG_DIAL_MOVIE));
+        CHECK("disabled is 1 exactly in movie", og_menu_disabled(OG_MENU_MID) == (d == OG_DIAL_MOVIE));
     }
     dial_missing = 1;
-    CHECK("enabled is 1 without a dial", og_menu_enabled(OG_MENU_MID) == 1 && og_menu_profile_enabled() == 1);
+    CHECK("disabled is 0 without a dial", og_menu_disabled(OG_MENU_MID) == 0);
     dial_missing = 0;
     CHECK("the item never reaches the previous check", previous_calls == 0);
     dial = OG_DIAL_MOVIE;
@@ -101,7 +101,7 @@ int main(void)
     for (unsigned i = 0; i < sizeof others / sizeof *others; i++) {
         int before = previous_calls;
         CHECK("other mids chain to the previous check",
-              og_menu_enabled(others[i]) == 0x5000 + others[i] && previous_calls == before + 1 && previous_mid == others[i]);
+              og_menu_disabled(others[i]) == 0x5000 + others[i] && previous_calls == before + 1 && previous_mid == others[i]);
     }
     return failures ? 1 : 0;
 }

@@ -39,7 +39,8 @@ with nothing written.
 - **Applies on confirm**, through the same reconcile as at start: every site is checked, the chosen preset is
   written and read back, and Off puts every site back to stock without a power cycle. The choice is saved in
   `/setting/open_gate.dat` and re-applied at the next shooting screen.
-- **Stills only:** Mode is greyed while the dial is on movie. Choose the mode on stills, then turn the dial and record.
+- **Stills only:** with the dial on movie, Mode shows "This function is currently disabled". Choose the mode on
+  stills, then turn the dial and record.
 - **On failure** (another apply running, coprocessor not ready, foreign bytes, an I/O error, or the record could not
   be saved) nothing is shown: the native apply method ignores the commit's result (`appFw.so` 0x1c15620), so there
   is no error path to use. Mode keeps showing what is really in place (`og_selected()`). If the bytes were applied
@@ -79,7 +80,7 @@ python -m a7m4.open_gate build --base BODYDATA-custom-v0.1.3.DAT \
 The output directory must not exist. It gets `BODYDATA.DAT`, `verification.json` (every input and output hash, the
 changed members and byte ranges, the module's symbols, the signature check and the package audit) and `work/`.
 Only `nflasha8` (`DmmCfg.bin`, 16 bytes), `nflasha15` (`appFw.so`: the module in its zero gap, two program headers,
-three hook instructions, the Media and Shutter/Silent groups, the sound page's records and nine of its relocations,
+three hook instructions, the Media and Shutter/Silent groups, the sound page's records and eight of its relocations,
 changed in place; and the 68 string banks, same sizes) and `part_image.sum` change. `av-cam.bin`, `libmpr.so`
 and `cpapp-b.bin` stay byte-identical: their open-gate changes are made in memory at run time.
 
@@ -98,7 +99,7 @@ not at the workspace defaults.
   `og57n880_v1`), which the kit ran on a camera set to PAL; this build has not been run on one. The kit ran each half
   on its own, never both at once.
 - Applied with the dial on stills only, as the kit does; with the dial on movie the next shooting screen retries,
-  and Mode is greyed.
+  and Mode says it is currently disabled.
 - This menu has not been run on a camera either (check C8). An earlier build listed a new item of its own directly on
   Media; on the camera it showed no title and could not be selected, because its availability callbacks were inverted
   and nothing in the custom firmware uses that shape. This build reuses the custom sound page instead, which works on

@@ -36,20 +36,20 @@
   "og_reconcile.c": "06dc426023915aa9c5abee727e71821065abf7caa713797d943f107de27fb04d",
   "og_mem.c": "974aa0335f03412cacdff32994d406da3bbfc48c78fea59caa0bd8dc0c9c54b0",
   "og_util.c": "caf8fdf9e3f29420f44570a22cc0f7167c8a65c01124e529e246615d485e2d47",
-  "og_menu.c": "9da0eb285df71758e166f4c05447a0b46e0fcbcd19d80fc0d16c5c3b4cfc3ebb",
+  "og_menu.c": "814218cf1d83ba7c4b0f04ca2e0ca2d42538216098165fa9de917c2d516c1073",
   "og_entry.S": "bb3b1e1ce81ba7aa905b25827627ce5462a714cef81df628fbce2fcd5899004b",
   "og_sites.S": "1657b32224cdc6e7d319550bc944486e03552b37a2f33d4da04143ea8795978d",
   "og.h": "960d23717fd58b48cffa9ce41a7a2da31db1e5d4d74cba38b89fd01493256599",
   "og_internal.h": "1070ca7d5b83312505a3752918802012477ac966959d46f9d16ee3bc59f7c8d7",
   "og_image.h": "ec3e2e4b13083afa85f9aec83c9a554cc8c4ff429bac861758e4b8e41972e48f",
   "og_sys.h": "d9376106c89f29fea29f2d374ef87b5dc30692f10920b5c8e18d7471b9d6db8a",
-  "og_menu.h": "b15ea440f53ae8e56026f15563406d0cdcc740793bb2463e965099781683667a",
+  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "979c485e1f1c76747abc65372539e9f3ce76ec4754f514eff2d91ca8b037c62d",
   "og_diag.h": "134a78a88a0d59c11999c259724563b3409ab3e0d54d568560224dab7cb0ce22"
  },
  "module": {
-  "text_bytes": 41584,
-  "text_sha256": "b1340c162aacd57e7490bc4666caa412296015b75c88d755444efe9cfb1164c8",
+  "text_bytes": 41472,
+  "text_sha256": "47e5d20f8260fe10a3b9871fbb46e8e1c51560bd59a07762673f2c24fc8851f3",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -100,9 +100,9 @@
    "va": "0x1c14e6c",
    "kind": "b",
    "previous_target": "0x8fb877c",
-   "previous_symbol": "og_menu_previous_enabled",
-   "entry": "og_menu_enabled",
-   "what": "menu-item enabled check (w0 = mid, 1 = selectable; callers such as 0x1ba807c open the item only when it is nonzero), first instruction: B to custom sounds' Volume filter (stock 6.02: stp x29, x30, [sp, #-0x20]!)"
+   "previous_symbol": "og_menu_previous_disabled",
+   "entry": "og_menu_disabled",
+   "what": "menu-item disabled check (w0 = mid, 1 = disabled: callers such as 0x1ba807c then show the 'currently disabled' caution through 0x1c14efc and do not open the item), first instruction: B to custom sounds' Volume filter (stock 6.02: stp x29, x30, [sp, #-0x20]!)"
   }
  ],
  "camera": {
@@ -240,10 +240,6 @@
    ],
    "what": "option-to-leaf pair the custom firmware registers (0x8f91c28, registrar 0x1cd1934)"
   },
-  "profile": {
-   "va": "0x8fc3d28",
-   "what": "the switch's profile; +0x50 is the enabled callback (stock 'return 1' 0x1c9efbc)"
-  },
   "relocations": {
    "what": "R_AARCH64_RELATIVE entries changed in place (r_offset, addend); a symbol name is a module symbol. Entries moved to the Media slot's page field duplicate its own and leave no stale pointer behind.",
    "retarget": [
@@ -302,13 +298,6 @@
      "to": "0x8fc0aa8",
      "new": "0x8fc0710",
      "what": "option map entry 5609 -> the third row"
-    },
-    {
-     "r_offset": "0x8fc3d78",
-     "addend": "0x1c9efbc",
-     "to": "0x8fc3d78",
-     "new": "og_menu_profile_enabled",
-     "what": "switch profile +0x50 enabled callback"
     }
    ]
   },

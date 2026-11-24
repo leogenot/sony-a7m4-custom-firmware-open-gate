@@ -26,12 +26,12 @@ and pins every source here by SHA-256 in `layout.json`.
 
 | Piece | VA | File offset | Size |
 | --- | --- | --- | --- |
-| Code, strings, site image (R-X) | `0x9063000` | `0x5e73000` | 37,608 of 0xc000 bytes |
+| Code, strings, site image (R-X) | `0x9063000` | `0x5e73000` | 37,560 of 0xc000 bytes |
 | State (RW, file-backed zeros) | `0x907f000` | `0x5e7f000` | 2,212 of 0x1000 bytes |
 | Program headers | 15 -> 17 entries in place at `0x5e80000`; `e_phnum` and `PT_PHDR` sizes updated | | |
 | Hooks | `0x1ddab68`, `0x1e56b2c`: `bl` to the aspect wrappers `0x9012bd8` / `0x9012ce4` -> `bl og_hook_first/second` | | |
-| Menu hook | `0x1c14e6c`: `b 0x8fb877c` (custom sounds' Volume filter) -> `b og_menu_enabled` | | |
-| Menu | the custom sound page's records and two menu groups, and nine relocations changed in place, below | | |
+| Menu hook | `0x1c14e6c`: `b 0x8fb877c` (custom sounds' Volume filter) -> `b og_menu_disabled` | | |
+| Menu | the custom sound page's records and two menu groups, and eight relocations changed in place, below | | |
 
 Both sections sit in the file's existing zero gap (`0x5e72500..0x5e80000`); the file keeps its length. Each hook
 trampoline calls the aspect feature's wrapper first, unchanged (it runs the native presenter creation and registers
@@ -94,14 +94,15 @@ Relocations, changed in place (`.rela.dyn` keeps its size, `DT_RELASZ` and `DT_R
 | `0x8fc0730`, `0x8fc0788` | inside the third row's bytes | the same (four identical relocations of one field) |
 | `0x8fc0508`, `0x8fc0510`, `0x8fc0518` | switch getter, setter, commit | `og_menu_getter`, `og_menu_setter`, `og_menu_commit` |
 | `0x8fc0aa8` | option map entry 5609 -> `0x8fc0920` | `0x8fc0710`, the third row |
-| `0x8fc3d78` | switch profile +0x50, stock "return 1" | `og_menu_profile_enabled` |
 
 The leaf's default (+0xa8, `0x8f98430`: return 0) is Off already and stays.
 
-Both availability callbacks answer "selectable": the native profile update stores profile +0x50's result as the row's
-enabled flag (`0x1c1ea74`), and callers of `0x1c14e6c` open an item only when it returns nonzero (`0x1ba8080`).
-`og_menu_enabled` (the `0x1c14e6c` hook) and `og_menu_profile_enabled` return 0 with the dial on movie, 1 otherwise;
-every other mid goes to the previous head unchanged, which ends in the stock code.
+`0x1c14e6c` answers "disabled": its callers open an item only when it returns 0, and otherwise show "This function is
+currently disabled" (`0x1ba807c`: nonzero -> `0x1c14efc`, return), as the custom firmware's own filters do for the
+items they lock (`0x8f983f0` returns 1 while a sound is off). `og_menu_disabled` (the hook) returns 1 with the dial on
+movie and 0 otherwise; every other mid goes to the previous head unchanged, which ends in the stock code. The switch's
+profile keeps v0.1.3's stock "return 1" at +0x50. (The first camera build had this the wrong way round: Mode was
+refused on stills and opened on movie, where the apply then refused it.)
 
 The native apply method calls the getter (which returns the value the setter staged while browsing) to find the
 confirmed row, then the commit with its alias, and ignores the commit's result; a failed `og_select` drops the staged

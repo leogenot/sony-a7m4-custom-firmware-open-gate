@@ -185,7 +185,7 @@ def test_generated_config_and_linker_script_follow_layout():
     assert ".text 0x9063000" in script and ".bss 0x907f000" in script
     assert "hook_first_previous = 0x9012bd8;" in script and "dlsym = 0x17166a0;" in script
     assert "#define OG_MENU_MID 1593u\n" in header and "#define OG_MENU_ALIAS_BASE 5607u\n" in header
-    assert "og_menu_previous_enabled = 0x8fb877c;" in script and "native_mode = 0x28ecdf8;" in script
+    assert "og_menu_previous_disabled = 0x8fb877c;" in script and "native_mode = 0x28ecdf8;" in script
     assert "og_native" not in script and "OG_MENU_TEXT" not in header
 
 
@@ -550,7 +550,7 @@ def test_og_menu_callbacks_on_the_host(menu_host):
     for check in ("getter reflects og_selected", "setter stages the browsed value", "commit selects the option's mode",
                   "commit reports any other status as failure", "a failed commit drops the staged value",
                   "commit refuses an alias below the item's", "commit refuses an alias above the item's",
-                  "enabled is 0 exactly in movie", "the profile callback agrees", "enabled is 1 without a dial",
+                  "disabled is 1 exactly in movie", "disabled is 0 without a dial",
                   "the item never reaches the previous check", "other mids chain to the previous check"):
         assert f"ok {check}" in lines, check
     assert lines.count("ok commit reports any other status as failure") == 7   # OG_BUSY .. OG_NOT_SAVED
@@ -559,9 +559,10 @@ def test_og_menu_callbacks_on_the_host(menu_host):
 @needs_appfw
 def test_v013_sound_page_is_a_complete_custom_item(v013):
     """What the takeover relies on, in v0.1.3: the page and switch are registered in every native map, accepted by the
-    custom firmware's filters, and listed last on Shutter/Silent; the switch's profile +0x50 is the stock 'return 1'
-    (an always-selectable item), which is how the native profile update reads it: its result is the row's enabled
-    flag (0x1c1ea74 stores it), and callers of 0x1c14e6c open an item only when it returns nonzero (0x1ba8080)."""
+    custom firmware's filters, and listed last on Shutter/Silent; the switch's profile +0x50 is the stock 'return 1'.
+    0x1c14e6c answers "disabled": its caller 0x1ba807c opens the item when it returns 0 (b.eq to 0x1ba80a0) and
+    otherwise calls 0x1c14efc (the "currently disabled" caution) and returns; on the camera the item with 1 in stills
+    was refused there and opened in movie."""
     leaves = dict(zip(v013.table(0x8fc0a20, 4, 16), (v013.relative(0x8fc0a28 + 16 * i) for i in range(4))))
     assert leaves == {MID: LEAF, MID + 1: 0x8fc0550, MID + 3: 0x8fc07a0, MID + 4: 0x8fc0860}
     assert dict(zip(v013.table(0x8fc0a60, 2, 16), (v013.relative(0x8fc0a68 + 16 * i) for i in range(2)))) == \
@@ -578,7 +579,9 @@ def test_v013_sound_page_is_a_complete_custom_item(v013):
     assert v013.u32(0x8fa1000) == 0x52800010 | (ALIAS << 5) and v013.u32(0x8fa1008) == 0x71005e1f   # ids 5607..5630
     assert v013.branch(0x1c18004) == ("b", 0x8fa1000)
     assert v013.u32(0x1c1ea74) == 0xf9402ac0 and v013.u32(0x1c1ea7c) == 0x39000a80   # ldr x0, [x22, #0x50]; strb w0, [x20, #2]
-    assert v013.branch(0x1ba807c) == ("bl", 0x1c14e6c) and v013.u32(0x1ba8084) & 0xff00001f == 0x54000000   # b.eq: refuse
+    assert v013.branch(0x1ba807c) == ("bl", 0x1c14e6c) and v013.u32(0x1ba8084) & 0xff00001f == 0x54000000   # b.eq: open
+    assert (v013.u32(0x1ba8084) >> 5) & 0x7ffff == (0x1ba80a0 - 0x1ba8084) // 4                         # ... at 0x1ba80a0
+    assert v013.branch(0x1ba808c) == ("bl", 0x1c14efc)                                                  # nonzero: caution
     assert group_entries(v013, SILENT)[-2:] == [(PAGE_MID, 0, PAGE), (PAGE_MID + 3, 0, FOCUS_PAGE)]
 
 
@@ -647,8 +650,8 @@ def test_composed_page_holds_only_the_open_gate_setting(composed, v013):
     for at, name in ((0x78, "og_menu_getter"), (0x80, "og_menu_setter"), (0x88, "og_menu_commit")):
         assert out.relative(LEAF + at) == module.symbols[name] and struct.unpack("<Q", out.bytes(LEAF + at, 8))[0] == module.symbols[name]
     assert out.relative(LEAF + 0xa8) == 0x8f98430 and out.u32(0x8f98430) == 0x2a1f03e0   # default: mov w0, wzr (Off)
-    assert out.relative(PROFILE + 0x50) == module.symbols["og_menu_profile_enabled"]
-    assert out.relative(PROFILE + 0x48) == NATIVE_TRUE and out.bytes(PROFILE, 0x48) == v013.bytes(PROFILE, 0x48)
+    assert out.bytes(PROFILE, 0x58) == v013.bytes(PROFILE, 0x58)   # the profile stays v0.1.3's
+    assert out.relative(PROFILE + 0x48) == out.relative(PROFILE + 0x50) == NATIVE_TRUE
 
 
 def test_composed_rows_are_off_4k_and_57k(composed, v013):
@@ -690,12 +693,11 @@ def test_composed_relocations_change_only_the_listed_entries(composed, v013):
 def test_takeover_refuses_another_layout(v013):
     from a7m4.open_gate import _take_over_sound_page
     lay = _layout()
-    symbols = {"og_menu_getter": 0x9063000, "og_menu_setter": 0x9063010, "og_menu_commit": 0x9063020,
-               "og_menu_profile_enabled": 0x9063030}
+    symbols = {"og_menu_getter": 0x9063000, "og_menu_setter": 0x9063010, "og_menu_commit": 0x9063020}
     _take_over_sound_page(bytearray(v013.data), v013.data, v013.elf, v013.loads, symbols, lay)
     for va, message in ((MEDIA + 8, "Group"), (SILENT + 16 + 12 * 24 + 16, "two sound pages"), (PAGE + 0x64, "Sound page"),
                         (LEAF + 0x54, "switch leaf"), (0x8fc0920, "Row"), (ROWS + 0x80 + 8, "Row"),
-                        (int(MENU["parent_pair"]["va"], 16) + 4, "Parent pair"), (PROFILE, "profile")):
+                        (int(MENU["parent_pair"]["va"], 16) + 4, "Parent pair")):
         tampered = bytearray(v013.data)
         tampered[v013.offset(va)] ^= 1
         with pytest.raises(ToolError, match=message):
@@ -712,13 +714,13 @@ def test_takeover_refuses_another_layout(v013):
 def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(composed, v013):
     module, out = composed
     hooks = _layout()["hooks"]
-    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_enabled"]
+    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"]
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
         assert out.branch(va) == (hook["kind"], module.symbols[hook["entry"]])
-    # og_menu_enabled: cmp w0, #MID; b.ne -> the previous head (custom sounds' Volume filter, then the stock check).
-    at = module.symbols["og_menu_enabled"]
+    # og_menu_disabled: cmp w0, #MID; b.ne -> the previous head (custom sounds' Volume filter, then the stock check).
+    at = module.symbols["og_menu_disabled"]
     assert out.u32(at) == 0x7100001f | (MID << 10)
     word = out.u32(at + 4)
     imm = (word >> 5) & 0x7ffff

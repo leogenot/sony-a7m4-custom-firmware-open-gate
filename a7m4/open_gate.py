@@ -36,7 +36,7 @@ _GROUP_BYTES = 0x2e0            # menu group: 16-byte header {id, title, count, 
 _SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_diag.c", "og_entry.S", "og_sites.S")  # [DEBUG-og2] og_diag.c
 _HEADERS = ("og.h", "og_internal.h", "og_image.h", "og_sys.h", "og_menu.h", "og_diag.h")
 _UXC_MAGIC, _UXC_ID_BIAS = b"uxc\x07", 0x1C000000
-_MENU_CALLBACKS = ("og_menu_getter", "og_menu_setter", "og_menu_commit", "og_menu_profile_enabled")
+_MENU_CALLBACKS = ("og_menu_getter", "og_menu_setter", "og_menu_commit")
 _CFLAGS = ("-target", "aarch64-freestanding-none", "-mcpu=generic-neon-fp_armv8", "-mgeneral-regs-only",
           "-mno-outline-atomics", "-mstrict-align", "-mbranch-protection=none", "-fpie", "-Os", "-g", "-std=c11",
           "-Wall", "-Wextra", "-Werror", "-ffreestanding", "-fno-builtin", "-fno-stack-protector",
@@ -283,12 +283,11 @@ def _take_over_sound_page(out: bytearray, appfw: bytes, elf, loads, symbols: Map
                     and {int(x) for x in table[into, 0]} <= moved, "OG_MENU", f"{va:#x} is still referenced")
         put(offset(va, 0x80), bytes(record))
 
-    # The option-to-leaf pair of the moved row; the switch's profile.
+    # The option-to-leaf pair of the moved row.
     pair = menu["parent_pair"]
     at = offset(_int(pair["va"]), 8)
     require(list(struct.unpack_from("<II", appfw, at)) == pair["old"], "OG_MENU", "Parent pair is not the expected one")
     put(at, struct.pack("<II", *pair["new"]))
-    require(u32(_int(menu["profile"]["va"])) == menu["mid"], "OG_MENU", "Switch profile is not the expected one")
 
     # Relocations, changed in place; the file bytes each one fills get the same value.
     for r in retarget:

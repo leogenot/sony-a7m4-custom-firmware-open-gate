@@ -93,7 +93,7 @@ ZM4 isn't part of this project and hasn't been tested with this build.
 
 **MENU > Shooting > Media > Open Gate > Mode**: **Off**, **4K 3:2** (3840x2560) or **5.7K 3:2** (5760x3840).
 
-1. Turn the dial to **stills**. Mode is greyed with the dial on movie.
+1. Turn the Still/Movie/S&Q switch to **stills**. With it on movie, Mode shows "This function is currently disabled".
 2. Pick a mode and confirm. It applies at once, with no USB and no power cycle, and is saved in the camera.
 3. Turn the dial to movie and record. The mode stays on after a power-off or a battery pull until you set it to Off.
 
@@ -216,7 +216,7 @@ stock. A camera whose stored records lack either drive mode is left untouched.
 
 **The menu.** The setting is the custom firmware's own Custom Shutter Sound page, taken over: its page, controller and
 ids already work on the camera, so nothing new is registered. The page is renamed Open Gate and listed on Shooting >
-Media, holds only the Mode setting, and that setting gets a third option and callbacks into the module. Nine existing
+Media, holds only the Mode setting, and that setting gets a third option and callbacks into the module. Eight existing
 relocations change in place, so `.rela.dyn` keeps its size. The four texts are the page's own, rewritten in place in
 all 68 string banks; no Sony string changes. An earlier version added a new item of its own; on the camera it had no
 title and couldn't be selected (its "selectable" answers were inverted), which is why this one reuses a working page.

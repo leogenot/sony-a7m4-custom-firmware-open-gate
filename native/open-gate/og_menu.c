@@ -2,7 +2,7 @@
  *
  * The setting is the custom firmware's Custom Shutter Sound switch (mid 1593) on its own sound page, which
  * a7m4/open_gate.py takes over: the page is renamed Open Gate and listed on MENU > Shooting > Media, the switch gets a
- * third option row, and its getter, setter, commit and profile callback are pointed here (layout.json "menu"). The
+ * third option row, and its getter, setter and commit are pointed here (layout.json "menu"). The
  * page, its controller and the item's ids are the custom firmware's own, already registered in every native map and
  * accepted by its id filters, so nothing is registered here.
  *
@@ -10,8 +10,10 @@
  * the commit with that row's alias, and ignores the commit's result. A failed og_select is therefore silent: the
  * staged value is dropped and the getter shows og_selected() again.
  *
- * Both availability callbacks answer "selectable": the native profile update stores profile +0x50's result as the
- * row's enabled flag (0x1c1ea74), and callers of 0x1c14e6c open the item only when it returns nonzero (0x1ba807c).
+ * The 0x1c14e6c check answers "disabled": its callers open an item only when it returns 0, and otherwise show the
+ * "currently disabled" caution (0x1ba807c: nonzero -> 0x1c14efc, return); the custom firmware's own filters return 1
+ * for the items they lock (0x8f983f0). Our item is disabled in movie only, as the kit applies in stills only. The
+ * switch's profile keeps v0.1.3's stock "return 1" at +0x50.
  */
 #include <stdint.h>
 #include "og.h"
@@ -21,7 +23,7 @@
 
 #define HIDDEN __attribute__((visibility("hidden")))
 
-extern uint32_t og_menu_previous_enabled(uint32_t mid) HIDDEN;  /* the 0x1c14e6c chain's previous head */
+extern uint32_t og_menu_previous_disabled(uint32_t mid) HIDDEN;  /* the 0x1c14e6c chain's previous head */
 extern const volatile uint32_t *native_mode(void);             /* stock getter: OG_DIAL_MOVIE in movie */
 
 /* 0: nothing staged; otherwise the raw value the native setter staged while browsing, plus 1. */
@@ -56,25 +58,18 @@ int og_menu_commit(uint32_t alias)
     return ok;
 }
 
-static uint32_t in_stills(void)
+static uint32_t in_movie(void)
 {
     const volatile uint32_t *dial = native_mode();
-    return !(dial && *dial == OG_DIAL_MOVIE);
+    return dial && *dial == OG_DIAL_MOVIE;
 }
 
-static uint32_t last_enabled, last_profile;   /* [DEBUG-og2] last logged value + 1; 0: none yet */
+static uint32_t last_disabled;   /* [DEBUG-og2] last logged value + 1; 0: none yet */
 
-uint32_t og_menu_enabled(uint32_t mid)
+uint32_t og_menu_disabled(uint32_t mid)
 {
-    if (mid != OG_MENU_MID) return og_menu_previous_enabled(mid);
-    uint32_t r = in_stills();
-    if (r + 1 != __atomic_exchange_n(&last_enabled, r + 1, __ATOMIC_RELAXED)) og_diag("menu.enabled", r, mid, 0, 0);   /* [DEBUG-og2] */
-    return r;
-}
-
-uint32_t og_menu_profile_enabled(void)
-{
-    uint32_t r = in_stills();
-    if (r + 1 != __atomic_exchange_n(&last_profile, r + 1, __ATOMIC_RELAXED)) og_diag("menu.profile", r, 0, 0, 0);   /* [DEBUG-og2] */
+    if (mid != OG_MENU_MID) return og_menu_previous_disabled(mid);
+    uint32_t r = in_movie();
+    if (r + 1 != __atomic_exchange_n(&last_disabled, r + 1, __ATOMIC_RELAXED)) og_diag("menu.disabled", r, mid, 0, 0);   /* [DEBUG-og2] */
     return r;
 }
