@@ -29,7 +29,7 @@ Erlla's original README: [English](README.en.md) · [中文](README.zh-CN.md)
 
 | What | Where |
 | --- | --- |
-| The installable package | `BODYDATA.DAT` on the release [`v0.1.3-open-gate.2`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/v0.1.3-open-gate.2), SHA-256 `915832f4282a9ea6ab2cf5e411029a5c377dc0e6f924b9b1c11851b29801c2d6` |
+| The installable package | `BODYDATA.DAT` on the release [`v0.1.3-open-gate.3`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/v0.1.3-open-gate.3), SHA-256 `39eaf08036e9b2e39b532623f10ead9c358825b560276e9f151f1bc6e215c283` |
 | The same build, unbundled | [sony-a7m4-open-gate-firmware](https://github.com/leogenot/sony-a7m4-open-gate-firmware): the 70 changed files and a script that bundles them into v0.1.3's package |
 | The install tool | `M4_1.03_Windows_x64.zip` from Erlla's [v0.1.3 release](https://github.com/Erlla/sony-a7m4-custom-firmware/releases/tag/A7M4-ToolKit-v0.1.3) |
 | The install tool on a Mac | `ZM4-release-v1.0.3.dmg` from [Hippasu/A7m4-Z4M-firmware-for-mac](https://github.com/Hippasu/A7m4-Z4M-firmware-for-mac/releases/latest) (third party, Apple Silicon only) |
@@ -190,7 +190,7 @@ existing empty gap of `appFw.so`, writes into memory at run time:
 | Target | What changes | How it is written |
 | --- | --- | --- |
 | Coprocessor RAM | The full-height sensor read-out, the output size, the rear-screen 3:2 fill | `sen_dma_transfer` through a 4 KB DMA buffer, whole 64-byte lines, read back after each write |
-| Stored drive-parameter records | 26 bytes in each of two drive modes: `0x8c0` (NTSC, 24p/30p) and `0x880` (PAL, 25p) | The same DMA path, found through their pointer chain |
+| Stored drive-parameter record | 26 bytes of the drive mode the kit uses (`0x8c0` on NTSC cameras, `0x880` on PAL) | The same DMA path, found through its pointer chain |
 | `av-cam.bin` tables | The encoder: memory blocks, descriptors, profiles, bit rates, no B pictures for 5.7K | A `/dev/mem` mapping, checked through `pread` of `/dev/mem` too |
 | `libmpr.so` | The MP4 writer: picture size, header sizes, edit-list start | `/proc/self/mem` (data and instructions) |
 
@@ -200,19 +200,19 @@ on and the kit's cold-boot rule goes away.
 **Where the bytes come from.** Every address and byte comes from the kit's design files, pinned by SHA-256 in
 [`layout.json`](native/open-gate/layout.json), plus the stored-record bytes in
 [`stored_record.json`](native/open-gate/stored_record.json). The build compiles them into a site image inside the
-module: two presets, 4K and 5.7K. Each holds the kit's NTSC and PAL step together, so the build works on a camera set to
-either and needs no detection: memory can't tell the two settings apart (every camera holds both drive modes' records),
-and the kit asks the user instead. The two never touch the same byte. Nothing is typed into C.
+module: four presets (4K and 5.7K, each for NTSC and PAL). Nothing is typed into C.
 
 **When it runs.** Two hooks on the shooting screen's creation (`0x1ddab68`, `0x1e56b2c`) call the custom firmware's
 aspect-ratio code first, unchanged, then `og_power_on`, which brings memory to the saved mode. Confirming the menu calls
 `og_select`, which does the same right away and then saves the mode. Both only act with the dial on stills, as the
 kit does; with the dial on movie the next shooting screen retries.
 
-**How it stays safe.** Each apply first reads every site of both presets. Every site must hold either its stock bytes
-or one preset's bytes; anything else and nothing is written. Then it undoes the other preset, applies the chosen one in
-the kit's order and reads each write back. On any failure it puts every touched site back. Off puts every site back to
-stock. A camera whose stored records lack either drive mode is left untouched.
+**How it stays safe.** Each apply first reads every site of the camera's NTSC/PAL family. Every site must hold either
+its stock bytes or one preset's bytes; anything else and nothing is written. Then it undoes the other preset, applies
+the chosen one in the kit's order and reads each write back. On any failure it puts every touched site back. Off puts
+every site back to stock. The camera's NTSC/PAL setting is detected from its stored records: exactly one of the two
+drive modes' records must hold the kit's bytes (on an NTSC camera, `0x880`'s record differs from the kit's PAL stock),
+and a camera that matches neither or both is left untouched.
 
 **The menu.** The setting is the custom firmware's own Custom Shutter Sound page, taken over: its page, controller and
 ids already work on the camera, so nothing new is registered. The page is renamed Open Gate and listed on Shooting >

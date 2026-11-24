@@ -1,6 +1,6 @@
 {
  "schema": 1,
- "what": "The 26 bytes of a stored drive-parameter record that step 2 changes: drive mode 0x8c0's for ogsq_v3 / og57n_v1 (ntsc), 0x880's for ogsq880_v1 / og57n880_v1 (pal). Identical for 4K and 5.7K within a drive mode. Every camera holds both records, each with its own stock bytes; both are changed.",
+ "what": "The 26 bytes of the stored drive-parameter record that step 2 (ogsq_v3 / og57n_v1, PAL: ogsq880_v1 / og57n880_v1) changes. Identical for 4K and 5.7K within a family.",
  "source": "ArcaneLantern/a7iv-open-gate-test libJit_level5_{ogsq_v3,og57n_v1,ogsq880_v1,og57n880_v1}.so: old/new/offset tables read from the code that builds the site record (adr x9 / adrp+add x11 / adrp+add x9 before 'mov w8,#0x1a').",
  "locator": {
   "root_cp_va": "0x12b9cc0",

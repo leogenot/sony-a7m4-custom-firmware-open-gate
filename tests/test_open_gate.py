@@ -19,9 +19,8 @@ import pytest
 from a7m4.common import ToolError
 from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _linker_script, _uxc_records, _uxc_texts,
                             build, compile_module, compose_ap)
-from a7m4.open_gate_sites import (_CP_IMAGE_VA, _NATIVE, PRESETS, RECORD_SPACE, _ROOT, STEP1, _STORED_RECORD, Family, Mode,
-                                  Run, SiteImage, Space, check_stock, compile_image, dmmcfg_edits, _layout, load_design,
-                                  runs_of)
+from a7m4.open_gate_sites import (_CP_IMAGE_VA, _NATIVE, PRESETS, _ROOT, STEP1, _STORED_RECORD, Family, Mode, Run, SiteImage,
+                                  Space, check_stock, compile_image, dmmcfg_edits, _layout, load_design, runs_of)
 
 WORKSPACE = _ROOT.parent
 DESIGNS = Path(os.environ.get("OG_DESIGNS", WORKSPACE / "a7iv-open-gate-test/windows/tools/modding/designs"))
@@ -33,7 +32,6 @@ FILES = {"cpapp-b.bin": ("nflasha8_unpacked/cpapp-b.bin", "nflasha8:CPAPP-B.BIN"
          "libmpr.so": ("nflasha15_unpacked/lib/libmpr.so", "nflasha15:lib/libmpr.so"),
          "DmmCfg.bin": ("nflasha8_unpacked/DmmCfg.bin", "nflasha8:DMMCFG.BIN")}
 RECORD = json.loads(_STORED_RECORD.read_text("utf-8"))
-STEP2 = {"ogsq_v3": Family.NTSC, "og57n_v1": Family.NTSC, "ogsq880_v1": Family.PAL, "og57n880_v1": Family.PAL}
 OK, BUSY, NOT_READY, WRONG_DIAL, FOREIGN, IO, UNDO_FAILED, NOT_SAVED = range(8)
 
 needs_designs = pytest.mark.skipif(not DESIGNS.is_dir(), reason="kit designs not available")
@@ -57,9 +55,9 @@ def files():
     return data
 
 
-def expected_bytes(mode, changed_only=True):
+def expected_bytes(mode, family, changed_only=True):
     """{(space, addr): (old, new)} for every changed byte (or every byte) of a preset's design entries and stored
-    record patches, read straight from the JSONs."""
+    record patch, read straight from the JSONs."""
     result = {}
 
     def add(space, addr, old, new):
@@ -67,7 +65,7 @@ def expected_bytes(mode, changed_only=True):
             if o != n or not changed_only:
                 assert result.setdefault((space, addr + i), (o, n)) == (o, n)
 
-    for name in PRESETS[mode]:
+    for name in PRESETS[(mode, family)]:
         design = json.loads((DESIGNS / f"{name}.json").read_text())
         for patch in design.get("patches", []):
             space = {"av-cam.bin": Space.AVCAM, "libmpr.so": Space.MPR}.get(patch.get("binary"), Space.CP)
@@ -75,9 +73,9 @@ def expected_bytes(mode, changed_only=True):
         for site in design.get("sites", []):
             add(Space.CP, int(site["ram_address"], 16), site["old"], site["new"])
         if design["summary"].get("plus", "").startswith("26 bytes of the stored drive-parameter record"):
-            fam = RECORD["families"][STEP2[name].value]
+            fam = RECORD["families"][family.value]
             for i, off in enumerate(fam["offsets_in_record"]):
-                add(RECORD_SPACE[STEP2[name]], off, fam["old"][2 * i:2 * i + 2], fam["new"][2 * i:2 * i + 2])
+                add(Space.CP_DRIVE_RECORD, off, fam["old"][2 * i:2 * i + 2], fam["new"][2 * i:2 * i + 2])
     return result
 
 
@@ -95,15 +93,15 @@ def test_presets_are_the_kit_states_without_step1_and_the_c3_cycle():
     kit = runpy.run_path(str(KIT_APPLY))
     for state, mode in (("default", Mode.UHD_32), ("real57", Mode.K57_32)):
         steps = [s[1] for s in kit["STATES"][state]["steps"] if s[1] != STEP1 and not s[1].startswith("lcdcycle")]
-        both = [n for s in steps for n in ((s, kit["PAL"][s][1]) if s in kit["PAL"] else (s,))]
-        assert PRESETS[mode] == tuple(both)   # NTSC step 2, then the kit's PAL step 2, then the rest
-    assert {v[1]: Family.PAL for v in kit["PAL"].values()} | dict.fromkeys(kit["PAL"], Family.NTSC) == STEP2
+        assert PRESETS[(mode, Family.NTSC)] == tuple(steps)
+        pal = [kit["PAL"][s][1] if s in kit["PAL"] else s for s in steps]
+        assert PRESETS[(mode, Family.PAL)] == tuple(pal)
 
 
 def test_site_image_round_trip(image):
     data = image.encode()
     assert SiteImage.decode(data) == image and image.encode() == data
-    assert [p.mode for p in image.presets] == list(PRESETS)
+    assert [(p.mode, p.family) for p in image.presets] == list(PRESETS)
     broken = bytearray(data)
     broken[-1] ^= 1
     with pytest.raises(ToolError):
@@ -114,9 +112,9 @@ def test_site_image_round_trip(image):
 
 def test_every_run_equals_its_design_entries_and_the_stored_record(image):
     for preset in image.presets:
-        want, got = expected_bytes(preset.mode), image_bytes(preset)
-        covered = expected_bytes(preset.mode, changed_only=False)
-        assert {k: v for k, v in got.items() if v[0] != v[1]} == want, preset.mode
+        want, got = expected_bytes(preset.mode, preset.family), image_bytes(preset)
+        covered = expected_bytes(preset.mode, preset.family, changed_only=False)
+        assert {k: v for k, v in got.items() if v[0] != v[1]} == want, (preset.mode, preset.family)
         for key, value in got.items():   # unchanged bytes kept inside a run are unchanged bytes of a design entry
             assert covered[key] == value
 
@@ -125,8 +123,9 @@ def test_runs_of_one_space_coincide_or_are_disjoint(image):
     seen = {}
     for preset in image.presets:
         for run in preset.runs:
-            seen.setdefault(run.space, {}).setdefault(run.addr, len(run.old))
-            assert seen[run.space][run.addr] == len(run.old)
+            key = (run.space, preset.family if run.space is Space.CP_DRIVE_RECORD else None)
+            seen.setdefault(key, {}).setdefault(run.addr, len(run.old))
+            assert seen[key][run.addr] == len(run.old)
     for runs in seen.values():
         ordered = sorted(runs.items())
         assert all(a + n <= b for (a, n), (b, _) in zip(ordered, ordered[1:]))
@@ -221,19 +220,18 @@ def test_compose_ap_refuses_another_appfw():
 # --- og_reconcile.c and og.c on the host, against a fake og_mem seeded with v0.1.3's files --------------------------
 
 class Camera:
-    """Both stored records hold their own drive mode's stock bytes, as on every camera."""
-
-    def __init__(self, binary, files, image):
+    def __init__(self, binary, files, family, image):
         fam = RECORD["families"]
         offsets = ",".join(map(str, fam["ntsc"]["offsets_in_record"]))
         assert fam["ntsc"]["offsets_in_record"] == fam["pal"]["offsets_in_record"]
         self.p = subprocess.Popen([str(binary), str(DEV / FILES["cpapp-b.bin"][0]), str(DEV / FILES["av-cam.bin"][0]),
-                                   str(DEV / FILES["libmpr.so"][0]), offsets, fam["ntsc"]["old"], fam["pal"]["old"]],
-                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                                   str(DEV / FILES["libmpr.so"][0]), family.value, offsets, fam["ntsc"]["old"],
+                                   fam["pal"]["old"]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        self.family = family
         for preset in image.presets:   # CP RAM beyond the loaded image holds its stock bytes
             for run in preset.runs:
                 if run.space is Space.CP and run.addr - _CP_IMAGE_VA >= len(files["cpapp-b.bin"]):
-                    assert self.send(f"seed {Space.CP.value} {run.addr} {run.old.hex()}") == ["ok"]
+                    assert self.send(f"seed 0 {run.addr} {run.old.hex()}") == ["ok"]
 
     def send(self, line):
         self.p.stdin.write(line + "\n")
@@ -249,8 +247,8 @@ class Camera:
         self.p.stdin.flush()
         result = {}
         for line in iter(self.p.stdout.readline, "end\n"):
-            _, a, b, c = line.split()
-            result[(Space(int(a)), int(b))] = int(c)
+            kind, a, b, c = line.split()
+            result[(Space.CP_DRIVE_RECORD, int(b), int(a)) if kind == "r" else (Space(int(a)), int(b))] = int(c)
         return result
 
     def close(self):
@@ -258,11 +256,13 @@ class Camera:
         assert self.p.wait(timeout=60) == 0
 
 
-def state_of(mode):
+def state_of(mode, family):
     """The diff the fake memory must show with a mode applied: every changed design byte at its new value."""
     if mode is Mode.OFF:
         return {}
-    return {key: new for key, (_, new) in expected_bytes(mode).items()}
+    index = 0 if family is Family.NTSC else 1
+    return {((s, a, index) if s is Space.CP_DRIVE_RECORD else (s, a)): new
+            for (s, a), (_, new) in expected_bytes(mode, family).items()}
 
 
 @pytest.fixture(scope="module")
@@ -295,52 +295,53 @@ def setting(host):
 
 
 @pytest.fixture
-def camera(host, image, files, setting):
-    cam = Camera(host, files, image)
+def camera(host, image, files, setting, request):
+    cam = Camera(host, files, getattr(request, "param", Family.NTSC), image)
     yield cam
     cam.close()
 
 
+both = pytest.mark.parametrize("camera", [Family.NTSC, Family.PAL], indirect=True, ids=["ntsc", "pal"])
+
+
+@both
 def test_reconcile_reaches_each_mode_and_back_to_stock(camera):
+    fam = camera.family
     assert camera.status("reconcile 0")[::2] == (OK, 0)
     assert camera.diff() == {}
     assert camera.status("reconcile 1")[0] == OK
-    assert camera.diff() == state_of(Mode.UHD_32)
+    assert camera.diff() == state_of(Mode.UHD_32, fam)
     status, reads, writes = camera.status("reconcile 1")
     assert (status, writes) == (OK, 0) and reads
     assert camera.status("reconcile 2")[0] == OK
-    assert camera.diff() == state_of(Mode.K57_32)
+    assert camera.diff() == state_of(Mode.K57_32, fam)
     assert camera.status("reconcile 2")[::2] == (OK, 0)
     assert camera.status("reconcile 1")[0] == OK
-    assert camera.diff() == state_of(Mode.UHD_32)
+    assert camera.diff() == state_of(Mode.UHD_32, fam)
     assert camera.status("reconcile 0")[0] == OK
     assert camera.diff() == {}
 
 
-def test_reconcile_opens_both_drive_modes(camera):
-    assert camera.status("reconcile 1")[0] == OK
-    changed = {space for space, _ in camera.diff()}
-    assert {Space.RECORD_NTSC, Space.RECORD_PAL} <= changed
-
-
+@both
 def test_foreign_bytes_are_refused_with_nothing_written(camera, image):
-    preset = next(p for p in image.presets if p.mode is Mode.K57_32)
+    preset = next(p for p in image.presets if p.family is camera.family and p.mode is Mode.K57_32)
     run = next(r for r in preset.runs if r.space is Space.AVCAM)
     foreign = bytes(b ^ 0x5a for b in run.old)
     assert foreign not in (run.old, run.new)
-    assert camera.send(f"corrupt {Space.AVCAM.value} {run.addr} {foreign.hex()}") == ["ok"]
+    assert camera.send(f"corrupt 2 {run.addr} {foreign.hex()}") == ["ok"]
     before = camera.diff()
     assert camera.status("reconcile 2")[::2] == (FOREIGN, 0)
     assert camera.status("reconcile 0")[::2] == (FOREIGN, 0)
     assert camera.diff() == before
 
 
-@pytest.mark.parametrize("family", list(Family), ids=[f.value for f in Family])
-def test_foreign_stored_record_is_refused(camera, family):
-    offset, space = RECORD["families"][family.value]["offsets_in_record"][0], RECORD_SPACE[family]
-    camera.send(f"corrupt {space.value} {offset} ff")
+@both
+def test_foreign_stored_record_is_refused(camera, image):
+    fam = RECORD["families"][camera.family.value]
+    index = 0 if camera.family is Family.NTSC else 1
+    camera.send(f"corrupt 1 {fam['offsets_in_record'][0]} ff")   # the record of the camera's own family
     assert camera.status("reconcile 1")[::2] == (FOREIGN, 0)
-    assert camera.diff() == {(space, offset): 0xff}
+    assert camera.diff() == {(Space.CP_DRIVE_RECORD, fam["offsets_in_record"][0], index): 0xff}
 
 
 @pytest.mark.parametrize("how", ["before", "after"])
@@ -379,7 +380,7 @@ def test_not_ready_writes_nothing(camera):
 
 
 def test_select_persists_and_power_on_restores(host, image, files, setting):
-    first = Camera(host, files, image)
+    first = Camera(host, files, Family.NTSC, image)
     assert first.send("selected") == ["mode", "0"]
     assert first.send("power_on") == ["reads", "0", "writes", "0"]   # Off and nothing applied: no memory access
     assert first.send("dial 3") == ["ok"]
@@ -387,19 +388,19 @@ def test_select_persists_and_power_on_restores(host, image, files, setting):
     assert first.send("dial 0") == ["ok"]
     assert first.status("select 1")[0] == OK
     assert first.send("selected") == ["mode", "1"]
-    assert first.diff() == state_of(Mode.UHD_32)
+    assert first.diff() == state_of(Mode.UHD_32, Family.NTSC)
     record = (setting / "open_gate.dat").read_bytes()
     assert record == struct.pack("<4sIII", b"OGT1", 1, 1, 0xfffffffe)
     assert not (setting / "open_gate.tmp").exists()
     first.close()
 
-    second = Camera(host, files, image)
+    second = Camera(host, files, Family.NTSC, image)
     assert second.send("dial 3") == ["ok"]
     assert second.send("power_on")[3] == "0"        # movie: nothing written
     assert second.diff() == {}
     assert second.send("dial 0") == ["ok"]
     second.send("power_on")
-    assert second.diff() == state_of(Mode.UHD_32)
+    assert second.diff() == state_of(Mode.UHD_32, Family.NTSC)
     assert second.send("power_on")[3] == "0"        # already in place: reads only
     assert second.status("select 0")[0] == OK
     assert second.diff() == {} and second.send("load") == ["mode", "0"]
@@ -411,11 +412,11 @@ def test_bad_record_files_mean_off(host, image, files, setting):
                     struct.pack("<4sIII", b"OGT1", 2, 1, 0xfffffffe), struct.pack("<4sIII", b"OGT1", 1, 7, ~7 & 0xffffffff),
                     struct.pack("<4sIII", b"OGT1", 1, 2, 0xfffffffd) + b"x"):
         (setting / "open_gate.dat").write_bytes(content)
-        cam = Camera(host, files, image)
+        cam = Camera(host, files, Family.NTSC, image)
         assert cam.send("load") == ["mode", "0"], content
         cam.close()
     (setting / "open_gate.dat").write_bytes(struct.pack("<4sIII", b"OGT1", 1, 2, 0xfffffffd))
-    cam = Camera(host, files, image)
+    cam = Camera(host, files, Family.NTSC, image)
     assert cam.send("load") == ["mode", "2"]
     cam.close()
 
@@ -444,7 +445,8 @@ def test_og_mem_on_the_host(image, tmp_path):
                     str(tmp_path / "og_sites_host.c"), "-o", str(binary)], check=True)
     result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "ok read above the cached page" in result.stdout and "ok a list without 0x880 is foreign" in result.stdout
+    assert "ok read above the cached page" in result.stdout
+    assert "ok the NTSC camera's records: NTSC, the record of 0x8c0 at index 10" in result.stdout
 
 
 # --- PR 2: the Open Gate page (the custom firmware's Custom Shutter Sound page, taken over) ------------------------

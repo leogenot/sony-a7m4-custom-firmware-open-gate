@@ -12,7 +12,7 @@ setting, [`og_menu.h`](og_menu.h)).
 | --- | --- |
 | `og.c` | The selected mode and `/setting/open_gate.dat` (16 bytes `OGT1`, schema 1, mode, ~mode; `.tmp` + fsync + rename) |
 | `og_reconcile.c` | The order of work over the site image: check every site, undo, apply, roll back |
-| `og_mem.c` | The memory targets behind `og_mem_read` / `og_mem_write`, and the two stored records |
+| `og_mem.c` | The four memory targets behind `og_mem_read` / `og_mem_write`, and NTSC/PAL detection |
 | `og_entry.S` | The two hook trampolines |
 | `og_menu.c` | The Open Gate setting's callbacks: getter, setter, commit, and the two "enabled" checks |
 | `og_image.h`, `og_sys.h`, `og_util.c` | Site-image accessors; raw Linux system calls; `memset`/`memcpy` for the compiler |
@@ -26,8 +26,8 @@ and pins every source here by SHA-256 in `layout.json`.
 
 | Piece | VA | File offset | Size |
 | --- | --- | --- | --- |
-| Code, strings, site image (R-X) | `0x9063000` | `0x5e73000` | 37,560 of 0xc000 bytes |
-| State (RW, file-backed zeros) | `0x907f000` | `0x5e7f000` | 2,212 of 0x1000 bytes |
+| Code, strings, site image (R-X) | `0x9063000` | `0x5e73000` | 46,444 of 0xc000 bytes |
+| State (RW, file-backed zeros) | `0x907f000` | `0x5e7f000` | 1,700 of 0x1000 bytes |
 | Program headers | 15 -> 17 entries in place at `0x5e80000`; `e_phnum` and `PT_PHDR` sizes updated | | |
 | Hooks | `0x1ddab68`, `0x1e56b2c`: `bl` to the aspect wrappers `0x9012bd8` / `0x9012ce4` -> `bl og_hook_first/second` | | |
 | Menu hook | `0x1c14e6c`: `b 0x8fb877c` (custom sounds' Volume filter) -> `b og_menu_disabled` | | |
@@ -45,10 +45,11 @@ As in the kit's helpers (`libJit_level5_*`, `level16`, `level19_ogfile57r300_v1`
   `/dev/mem` with `O_SYNC`; `sen_dma_transfer(0, cp, phys, n)` reads, `(1, phys, cp, n)` writes, whole 64-byte lines.
   Writes re-read their lines just before the write and read them back after. Reads are served from the last 4 KB
   page read.
-- **Stored records**: root `0x12b9cc0` -> `+0x20` -> `+0x684` -> count, mode list, records (348 bytes each); the
-  records of drive modes `0x8c0` (NTSC, space `OG_RECORD_NTSC`) and `0x880` (PAL, `OG_RECORD_PAL`), found by mode id.
-  Both are on every camera (the list is all 30 drive modes), each with its own stock bytes, so nothing here tells the
-  camera's NTSC/PAL setting; a list without either mode is `OG_FOREIGN`.
+- **Stored record**: root `0x12b9cc0` -> `+0x20` -> `+0x684` -> count, mode list, records (348 bytes each); the record
+  of drive mode `0x8c0` (NTSC) or `0x880` (PAL). The family is the one whose record holds that family's stock or
+  open-gate bytes; exactly one must. The list holds all 30 drive modes, so both records are there; on an NTSC camera
+  `0x880`'s record holds `e5` at offset `0xb8` where the kit's PAL stock (read on a camera set to PAL) has `98`, so
+  only `0x8c0`'s matches (camera trace, diagnostic build `8ba24f9`).
 - **av-cam.bin**: `/dev/mem` (no `O_SYNC`) mapped at physical `0x401381000` (file `0x381000..0x3c0000`); each write is
   read back through the mapping and through `pread` of `/dev/mem`.
 - **libmpr.so**: `/proc/self/mem` at the start of its offset-0 mapping in `/proc/self/maps` plus the file offset. Data and
@@ -57,8 +58,7 @@ As in the kit's helpers (`libJit_level5_*`, `level16`, `level19_ogfile57r300_v1`
 
 ## Reconcile
 
-`og_reconcile(mode)` first reads every site of both presets. Each preset holds step 2 for both drive modes, so one
-mode works at 24p/30p (NTSC) and 25p (PAL) alike. Each site must hold its stock bytes or the new bytes
+`og_reconcile(mode)` first reads every site of the family's presets. Each must hold its stock bytes or the new bytes
 of one of the presets at that site (the build splits runs so overlapping sites coincide); otherwise `OG_FOREIGN` and
 nothing is written. Then presets are undone last-first (sites already as the target wants them are left), and the
 target's runs are applied in the kit's order. A failed read or write puts every touched site back to its starting

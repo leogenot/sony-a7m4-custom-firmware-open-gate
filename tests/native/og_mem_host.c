@@ -78,38 +78,70 @@ static void check(int ok, const char *name)
 
 static void put32(uint32_t va, uint32_t v) { memcpy(cp + va, &v, 4); }
 
-/* The 0x12b9cc0 chain with P, Q, the mode list and the records at the given CP addresses. The list holds `n` drive
- * modes; each record has 0x5a filler, and the records of 0x8c0 and 0x880 their own stock bytes, as on the camera. */
-static void chain(uint32_t p, uint32_t q, uint32_t list, uint32_t records, const uint32_t *modes, uint32_t n)
+/* The 0x12b9cc0 chain with P, Q, the mode list and the records at the given CP addresses. Record 0 is drive mode
+ * `first` and record 1 drive mode `second`; `stock_family` (0 NTSC, 1 PAL) has its stock bytes in the record of its
+ * drive mode. */
+static void chain(uint32_t p, uint32_t q, uint32_t list, uint32_t records, uint32_t first, uint32_t second,
+                  int stock_family)
 {
     memset(cp, 0x5a, CP_BYTES);
     put32(OG_RECORD_ROOT + OG_RECORD_P_FIELD, p);
     put32(p + OG_RECORD_Q_FIELD, q);
-    put32(q + OG_RECORD_COUNT_FIELD, n);
+    put32(q + OG_RECORD_COUNT_FIELD, 2);
     put32(q + OG_RECORD_LIST_FIELD, list);
     put32(q + OG_RECORD_RECORDS_FIELD, records);
-    for (uint32_t i = 0; i < n; i++) {
+    put32(list, first);
+    put32(list + 4, second);
+    uint32_t mode = stock_family ? OG_DRIVE_MODE_PAL : OG_DRIVE_MODE_NTSC;
+    uint32_t at = records + (mode == first ? 0 : OG_RECORD_BYTES);
+    const uint8_t *old = stock_family ? seed_pal_old : seed_ntsc_old;
+    for (unsigned i = 0; i < sizeof seed_off / sizeof *seed_off; i++) cp[at + seed_off[i]] = old[i];
+}
+
+static void detect_case(const char *name, uint32_t p, uint32_t q, uint32_t list, uint32_t records, uint32_t first,
+                        uint32_t second, int family)
+{
+    chain(p, q, list, records, first, second, family);
+    og_mem *m;
+    og_family f = 9;
+    og_status s = og_mem_begin(&m, &f);
+    uint32_t mode = family ? OG_DRIVE_MODE_PAL : OG_DRIVE_MODE_NTSC;
+    uint32_t want = records + (mode == first ? 0 : OG_RECORD_BYTES);
+    check(s == OG_OK && f == (og_family)family && m->record == want, name);
+    og_mem_end(m);
+}
+
+/* The camera's own list (cpapp-b.bin CP 0xc98330: 0x880 at index 9, 0x8c0 at index 10), both records holding the kit's
+ * stock bytes for their mode except `bad_byte` at record offset 0xb8 of the record of drive mode `bad_mode` (0: none).
+ * An NTSC camera's trace (diagnostic build 8ba24f9) showed 0x8c0's record as the kit's NTSC stock and 0x880's as the
+ * kit's PAL stock but e5 for 98 at 0xb8; the kit read 98 there on a camera set to PAL. */
+static og_status camera_case(uint32_t bad_mode, uint8_t bad_byte, og_family *f, uint32_t *record)
+{
+    static const uint32_t modes[30] = {0x5000, 0x5200, 0xc100, 0x5400, 0xc000, 0x5002, 0x5020, 0xa000,
+                                       0xa100, 0x880,  0x8c0,  0xae0,  0xb20,  0xbc0,  0x5001, 0x5201,
+                                       0x5401, 0xc010, 0xc110, 0x5004, 0x5021, 0xa030, 0xa130, 0x821,
+                                       0x8c1,  0xae1,  0xb21,  0xbc1,  0x8000, 0xe000};
+    const uint32_t p = 0x12ba16c, q = 0x12ba7f8, list = 0xc98330, records = 0x1fd1224;   /* as the camera reported */
+    memset(cp, 0x5a, CP_BYTES);
+    put32(OG_RECORD_ROOT + OG_RECORD_P_FIELD, p);
+    put32(p + OG_RECORD_Q_FIELD, q);
+    put32(q + OG_RECORD_COUNT_FIELD, 30);
+    put32(q + OG_RECORD_LIST_FIELD, list);
+    put32(q + OG_RECORD_RECORDS_FIELD, records);
+    for (uint32_t i = 0; i < 30; i++) {
         put32(list + 4 * i, modes[i]);
         const uint8_t *old = modes[i] == OG_DRIVE_MODE_NTSC ? seed_ntsc_old
                              : modes[i] == OG_DRIVE_MODE_PAL ? seed_pal_old : 0;
         for (unsigned k = 0; old && k < sizeof seed_off / sizeof *seed_off; k++)
             cp[records + OG_RECORD_BYTES * i + seed_off[k]] = old[k];
+        if (bad_mode && modes[i] == bad_mode) cp[records + OG_RECORD_BYTES * i + 0xb8] = bad_byte;
     }
-}
-
-static void locate_case(const char *name, uint32_t p, uint32_t q, uint32_t list, uint32_t records,
-                        const uint32_t *modes, uint32_t n, uint32_t ntsc_index, uint32_t pal_index)
-{
-    chain(p, q, list, records, modes, n);
     og_mem *m;
-    uint8_t ntsc[1], pal[1];
-    og_status s = og_mem_begin(&m);
-    check(s == OG_OK && m->record[0] == records + OG_RECORD_BYTES * ntsc_index &&
-              m->record[1] == records + OG_RECORD_BYTES * pal_index &&
-              og_mem_read(m, OG_RECORD_NTSC, seed_off[2], ntsc, 1) == OG_OK && ntsc[0] == seed_ntsc_old[2] &&
-              og_mem_read(m, OG_RECORD_PAL, seed_off[2], pal, 1) == OG_OK && pal[0] == seed_pal_old[2],
-          name);
+    *f = 9;
+    og_status s = og_mem_begin(&m, f);
+    *record = m ? m->record : 0;
     og_mem_end(m);
+    return s;
 }
 
 static og_mem *opened(void)
@@ -130,27 +162,26 @@ int main(void)
     avcam_buf = calloc(1, OG_AVCAM_MAP_BYTES);
     maps_text = "7f00000000-7f00100000 r-xp 00000000 00:00 0 /usr/lib/libmpr.so\n";
 
-    /* The pointer chain, each link below and above the page the previous read left cached. Both records are found by
-     * drive mode, whatever bytes they hold: every camera lists every drive mode, each record with its own stock
-     * bytes. The list is cpapp-b.bin's (CP 0xc98330); the kit read 0x880 at index 9 and 0x8c0 at index 10. */
-    static const uint32_t camera_list[30] = {0x5000, 0x5200, 0xc100, 0x5400, 0xc000, 0x5002, 0x5020, 0xa000,
-                                             0xa100, 0x880,  0x8c0,  0xae0,  0xb20,  0xbc0,  0x5001, 0x5201,
-                                             0x5401, 0xc010, 0xc110, 0x5004, 0x5021, 0xa030, 0xa130, 0x821,
-                                             0x8c1,  0xae1,  0xb21,  0xbc1,  0x8000, 0xe000};
-    static const uint32_t reversed[2] = {OG_DRIVE_MODE_PAL, OG_DRIVE_MODE_NTSC};
-    static const uint32_t ntsc_only[2] = {OG_DRIVE_MODE_NTSC, 0x5002};
-    locate_case("both records of the camera's list, chain descending", 0x1200000, 0x1100000, 0x1000000, 0x900000,
-                camera_list, 30, 10, 9);
-    locate_case("both records of the camera's list, chain ascending", 0x1400000, 0x1500000, 0x1600000, 0x1700000,
-                camera_list, 30, 10, 9);
-    locate_case("both records, PAL first", 0x1400000, 0x1500000, 0x1600000, 0x1700000, reversed, 2, 1, 0);
+    /* The pointer chain, each link below and above the page the previous read left cached, for both families. */
+    detect_case("detect ntsc, chain descending", 0x1200000, 0x1100000, 0x1000000, 0x900000, OG_DRIVE_MODE_NTSC,
+                OG_DRIVE_MODE_PAL, 0);
+    detect_case("detect ntsc, chain ascending", 0x1400000, 0x1500000, 0x1600000, 0x1700000, OG_DRIVE_MODE_NTSC,
+                OG_DRIVE_MODE_PAL, 0);
+    detect_case("detect pal, chain ascending", 0x1400000, 0x1500000, 0x1600000, 0x1700000, OG_DRIVE_MODE_NTSC,
+                OG_DRIVE_MODE_PAL, 1);
+    detect_case("detect pal, records in reverse order", 0x1400000, 0x1500000, 0x1600000, 0x1700000,
+                OG_DRIVE_MODE_PAL, OG_DRIVE_MODE_NTSC, 1);
+
     {
-        og_mem *m;
-        chain(0x1400000, 0x1500000, 0x1600000, 0x1700000, ntsc_only, 2);
-        check(og_mem_begin(&m) == OG_FOREIGN && !m, "a list without 0x880 is foreign");
-        chain(0x1400000, 0x1500000, 0x1600000, 0x1700000, camera_list, 30);
-        put32(0x1500000 + OG_RECORD_COUNT_FIELD, 0);
-        check(og_mem_begin(&m) == OG_NOT_READY && !m, "an empty list is not ready");
+        og_family f;
+        uint32_t record;
+        check(camera_case(OG_DRIVE_MODE_PAL, 0xe5, &f, &record) == OG_OK && f == OG_FAMILY_NTSC &&
+                  record == 0x1fd1224 + OG_RECORD_BYTES * 10,
+              "the NTSC camera's records: NTSC, the record of 0x8c0 at index 10");
+        check(camera_case(OG_DRIVE_MODE_NTSC, 0xe5, &f, &record) == OG_OK && f == OG_FAMILY_PAL &&
+                  record == 0x1fd1224 + OG_RECORD_BYTES * 9,
+              "the mirror case: PAL, the record of 0x880 at index 9");
+        check(camera_case(0, 0, &f, &record) == OG_FOREIGN && record == 0, "both records stock: ambiguous, refused");
     }
 
     og_mem *m = opened();

@@ -549,7 +549,7 @@ def build(args: argparse.Namespace) -> dict:
         "output_sha256": sha256(final), "inputs": {k: digest(v) for k, v in files.items()},
         "designs": lay["designs"], "compiler": lay["compiler"], "sources": _check_sources(lay),
         "site_image": {"sha256": digest(image.encode()), "bytes": len(image.encode()),
-                       "presets": [{"mode": p.mode.name, "runs": len(p.runs),
+                       "presets": [{"mode": p.mode.name, "family": p.family.value, "runs": len(p.runs),
                                     "bytes": sum(len(r.old) for r in p.runs)} for p in image.presets]},
         "module": {"text_va": hex(module.text_va), "text_bytes": len(module.text), "text_sha256": digest(module.text),
                    "state_va": hex(module.state_va), "state_bytes": module.state_bytes,

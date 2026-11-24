@@ -1,7 +1,7 @@
 /* Open gate on the camera: the only header other code includes.
  *
- * One operation brings camera memory to a mode. Addresses, bytes, memory targets and undo stay inside
- * native/open-gate; the site data is generated at build time from the open-gate designs.
+ * One operation brings camera memory to a mode. Addresses, bytes, memory targets, the NTSC/PAL family and undo
+ * stay inside native/open-gate; the site data is generated at build time from the open-gate designs.
  */
 #ifndef OG_H
 #define OG_H
