@@ -46,7 +46,7 @@
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "6ad717b60fa46b3b12ba75514bb4e554cf1da099f1d30aac9836634796f63436",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
-  "og_angle.c": "f02b540067689a386580a2882133b25cda74572d66c41b3c8f2b33be07d6507d",
+  "og_angle.c": "00bcedea6b68179f7fa49521517ce2830742cd9d21ec037d7cde339397c14c32",
   "og_angle.h": "563e307907d4eeaec27695eca936b6bfea1e6a9cdb1438d3b844b2c6a6190bd3",
   "og_angle.S": "7e3ef1e2e4259129172862090a220adc3b0b726dcad5ad500a66fefa8c2122eb"
  },
@@ -317,8 +317,8 @@
    "what": "[PROBE-angle] menu option id resolution (w0 option id), first instruction: B to Erlla's alias filter (stock 6.02: stp x29, x30, [sp, #-0x20]!). Options 1543 (Speed) and 1544 (Angle) resolve to themselves."
   }
  ],
- "row_edits": {
-  "what": "[PROBE-angle] 16-bit fields of option rows changed in place (a7m4/open_gate.py _edit_rows). Sony's row check 0x1c20420 reads a per-product flag at +0x44 + 2 x index; the index comes from 0x1c16460 -> 0x1c0bff4 and is 19 on the A7 IV (feature index 26, menu_item 0), so the flag is +0x6a. The row-list builder 0x1c0e52c (vtable slot 0x2e0, per-row check 0x1c0f12c at slot 0x1a8) and the option check 0x1c08bc0 both use it.",
+ "menu_edits": {
+  "what": "[PROBE-angle] 16-bit fields of menu records changed in place (a7m4/open_gate.py _edit_menu_records). Sony's row check 0x1c20420 reads a per-product flag at +0x44 + 2 x index; the index comes from 0x1c16460 -> 0x1c0bff4 and is 19 on the A7 IV (feature index 26, menu_item 0), so the flag is +0x6a. The row-list builder 0x1c0e52c (vtable slot 0x2e0, per-row check 0x1c0f12c at slot 0x1a8) and the option check 0x1c08bc0 both use it. Items have the same per-product flags in their leaf at +0x2c + 2 x index (0x1c2006c, reached from the item check 0x1c0f3ac at vtable slot 0x208), +0x52 on the A7 IV.",
   "edits": [
    {
     "va": "0x3fdd7f0",
@@ -335,6 +335,14 @@
     "old": "0x0",
     "new": "0x1",
     "what": "Shutter Mode: Angle, shown on the A7 IV (its +0x30 availability is entry 0, always)"
+   },
+   {
+    "va": "0x590ab98",
+    "title": "0x2008e2f",
+    "at": "0x52",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "Shutter Mode item 441's leaf, shown on the A7 IV"
    }
   ]
  },

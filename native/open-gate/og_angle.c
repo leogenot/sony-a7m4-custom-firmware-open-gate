@@ -8,11 +8,11 @@
  * drive runs as it does on the FX3; anywhere else it reads the real byte. The real byte and the override are traced
  * whenever they change, and each drive step and refusal is traced too.
  *
- * The Shutter Mode menu item is Sony's own (the FX3's): the A7 IV lists it first under Exposure, but its two rows
- * carry the per-product flag off for the A7 IV, which the build switches on (layout.json "row_edits"), as with DCI
+ * The Shutter Mode menu item is Sony's own (the FX3's): the A7 IV lists it first under Exposure, but its leaf and two
+ * rows carry the per-product flag off for the A7 IV, which the build switches on (layout.json "menu_edits"), as for DCI
  * (methods/13-dci-4k on alpha-dci). Item 441 and the two options also go through two lookups Erlla's custom firmware
- * chains for its own pages (the item map and the option resolve); this module goes first and answers for them the
- * way Erlla's code answers for its own: every id maps or resolves to itself. Choosing a row runs Sony's own commit
+ * chains for its own pages (the item map and the option resolve); this module goes first and answers for them the way
+ * Erlla's code answers for its own: every id maps or resolves to itself. Choosing a row runs Sony's own commit
  * (0x1cd40d8), which sets the mode live, saves it and tells the screens.
  */
 #include <stdint.h>

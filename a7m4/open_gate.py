@@ -303,18 +303,20 @@ def _take_over_sound_page(out: bytearray, appfw: bytes, elf, loads, symbols: Map
         put(offset(new_at, 8), struct.pack("<Q", value))
 
 
-def _edit_rows(out: bytearray, loads, layout: dict) -> None:
-    """Change menu option-row fields in place (layout.json "row_edits"): each edit names the row by VA and alias and
-    a 16-bit field by offset, and is refused unless the row holds that alias and the field its expected old value."""
-    for edit in layout.get("row_edits", {}).get("edits", []):
+def _edit_menu_records(out: bytearray, loads, layout: dict) -> None:
+    """Change 16-bit fields of menu records in place (layout.json "menu_edits"): an option row (0x80 bytes) is named
+    by VA and alias (+0x00), an item's leaf (0xc0 bytes) by VA and title (+0x00). Each edit is refused unless the
+    record holds that alias or title and the field its expected old value."""
+    for edit in layout.get("menu_edits", {}).get("edits", []):
         va, at = _int(edit["va"]), _int(edit["at"])
-        row = _file_offset(loads, va, 0x80)
-        require(at + 2 <= 0x80, "OG_ROWS", f"{va:#x}+{at:#x}: outside the 0x80-byte row")
-        require(struct.unpack_from("<I", out, row)[0] == edit["alias"], "OG_ROWS",
-                f"{va:#x} is not option {edit['alias']}'s row")
-        require(struct.unpack_from("<H", out, row + at)[0] == _int(edit["old"]), "OG_ROWS",
+        key, size = ("alias", 0x80) if "alias" in edit else ("title", 0xc0)
+        record = _file_offset(loads, va, size)
+        require(at + 2 <= size, "OG_MENU_EDIT", f"{va:#x}+{at:#x}: outside the {size:#x}-byte record")
+        require(struct.unpack_from("<I", out, record)[0] == _int(edit[key]), "OG_MENU_EDIT",
+                f"{va:#x} is not the record with {key} {edit[key]}")
+        require(struct.unpack_from("<H", out, record + at)[0] == _int(edit["old"]), "OG_MENU_EDIT",
                 f"{va:#x}+{at:#x}: not the expected old value")
-        struct.pack_into("<H", out, row + at, _int(edit["new"]))
+        struct.pack_into("<H", out, record + at, _int(edit["new"]))
 
 
 def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
@@ -364,7 +366,7 @@ def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
                 f"{va:#x} does not hold the expected {hook['kind'].upper()}")
         out[at:at + 4] = _branch(va, module.symbols[hook["entry"]], link)
     _take_over_sound_page(out, appfw, elf, loads, module.symbols, layout)
-    _edit_rows(out, loads, layout)
+    _edit_menu_records(out, loads, layout)
     result = bytes(out)
     require(len(result) == len(appfw), "OG_SIZE", "appFw.so changed size")
     check = ELFFile(io.BytesIO(result))
