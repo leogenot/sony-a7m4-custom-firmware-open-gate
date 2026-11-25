@@ -219,8 +219,8 @@ Where each feature stands, with the details and evidence, is in [ROADMAP.md](ROA
 
 - [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1):
   open gate chosen and applied with the switch on movie, with a crash guard.
-- [`alpha-angle-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.1):
-  shutter angle changed with the dial in movie mode.
+- [`alpha-angle-0.2`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.2):
+  a Shutter Mode menu item (Speed / Angle) and the shutter angle changed with the dial in movie mode.
 - [`alpha-hd-probe-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-hd-probe-0.1):
   read-only log of which sensor readout each movie format uses, for 1080p 3:2 and HD 60p.
 - [`alpha-dci-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-dci-0.1): XAVC
@@ -228,7 +228,7 @@ Where each feature stands, with the details and evidence, is in [ROADMAP.md](ROA
 - [`alpha-formats-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-formats-0.1):
   "4K 3:2 Open Gate" and "5.7K 3:2 Open Gate" in File Format.
 
-**Candidates:** anamorphic de-squeeze display, a Speed / Angle shutter menu, 1080p 3:2 open gate, a monitoring-only
+**Candidates:** anamorphic de-squeeze display, 1080p 3:2 open gate, a monitoring-only
 user LUT, Cine EI, Log shooting mode and Flexible ISO, in-camera time-lapse movie, a Big6-style main screen with
 waveform and false colour, and a binned full-frame 60p below 4K.
 
