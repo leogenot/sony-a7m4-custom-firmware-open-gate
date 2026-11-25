@@ -27,7 +27,7 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 | Feature | What it does | Where | Source |
 | --- | --- | --- | --- |
 | [**Open gate**](#open-gate) | 4K 3:2 (3840x2560) and 5.7K 3:2 (5760x3840) video from the whole sensor | MENU > Shooting > Media > Open Gate | **New** |
-| [**English LUT screens**](#custom-luts) | The Custom LUT screens in English instead of Chinese | Custom LUTs | **New, alpha only** |
+| [**English LUT screens**](#custom-luts) | The Custom LUT screens in English instead of Chinese | Custom LUTs | **New** |
 | [Custom LUTs](#custom-luts) | 16 slots for imported looks, each with its own adjustments and strength | MENU > Exposure/Color > Color/Tone > Custom LUTs | v0.1.3 |
 | [Custom aspect ratios](#custom-aspect-ratios) | 17:6, 65:24, 5:4, 7:6, 21:9 and 2.35:1 for stills | Aspect Ratio | v0.1.3 |
 | [FL2 / FL3 Creative Looks](#fl2--fl3-creative-looks) | The FX2's FL2 and FL3 looks | Creative Look | v0.1.3 |
@@ -39,12 +39,12 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 
 ## Download
 
-There are two release channels. Pick one package; both install the same way.
+Download the beta release. It installs the same way as every other package here.
 
 | Channel | Release | What's in it | `BODYDATA.DAT` SHA-256 |
 | --- | --- | --- | --- |
-| **Beta** (recommended) | [`beta-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.1) | Open gate and every v0.1.3 feature. Tested on a camera. Built from `main`. | `5ae4dc9e09d2f6eaee6ac84f3990dde2f7bdcd137a07d32341957d389b521a86` |
-| **Alpha** | [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1) | Beta plus English LUT screens. **Not yet run on a camera.** Built from [`alpha`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha). | `52314214a75585b08534a458e53e10d1620dcf1b3c794801bc8d489f4e59ce50` |
+| **Beta** (recommended) | [`beta-0.2`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.2) | Open gate, English LUT screens and every v0.1.3 feature. Tested on a camera. Built from `main`. | `52314214a75585b08534a458e53e10d1620dcf1b3c794801bc8d489f4e59ce50` |
+| **Alpha** | [Test builds](#roadmap) | One untested feature each, on top of beta. Pre-releases, for testing only. | Listed on each release |
 
 You also need an install tool, one of:
 
@@ -161,13 +161,13 @@ strength.
   second to load.
 - `.cube` and DCP files must be converted to the JSON format first; renaming isn't enough
   ([format](methods/08-custom-lut/README.en.md)).
-- **On beta**, these screens are in Chinese, and cameras without a Chinese font show empty boxes.
-- **On alpha**, they are in English whatever the camera language: card and file selection, delete confirmations, the
+- These screens are in English whatever the camera language: card and file selection, delete confirmations, the
   adjustments, status and errors. The words are
   [Erlla's English labels](https://github.com/Erlla/sony-a7m4-custom-firmware/blob/main/methods/08-custom-lut/UI-LANGUAGES.en.md)
-  plus 16 more for status and error lines they don't cover ([list](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha/native/open-gate/lut_labels.json)). A look you
+  plus 16 more for status and error lines they don't cover ([list](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/main/native/open-gate/lut_labels.json)). A look you
   named exactly like one of the Chinese labels also shows in English. Long English lines haven't been checked on the
-  camera's screen yet and may be cut off.
+  camera's screen in every language and may be cut off.
+- Beta 0.1 has these screens in Chinese; cameras without a Chinese font show empty boxes there.
 
 ### Custom aspect ratios
 
@@ -203,7 +203,7 @@ These work on their own, with no menu:
 
 ## Limitations
 
-- **Tested on one camera**, set to NTSC and to PAL. Alpha's English LUT screens haven't been run on a camera yet.
+- **Tested on one camera**, set to NTSC and to PAL.
 - **Open gate is chosen with the switch on stills.** It stays on in movie mode, but you can't change it there.
 - **After a battery pull, open gate comes back on its own only once you visit stills.** If the camera starts with the
   switch on movie, switch to stills once.
@@ -217,12 +217,10 @@ Where each feature stands, with the details and evidence, is in [ROADMAP.md](ROA
 
 **Test builds waiting for a camera run** (pre-releases, each built on Beta 0.1 on its own):
 
-- [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1): the Custom LUT
-  screens in English.
 - [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1):
   open gate chosen and applied with the switch on movie, with a crash guard.
-- [`alpha-angle-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.1):
-  shutter angle changed with the dial in movie mode.
+- [`alpha-angle-0.2`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.2):
+  a Shutter Mode menu item (Speed / Angle) and the shutter angle changed with the dial in movie mode.
 - [`alpha-hd-probe-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-hd-probe-0.1):
   read-only log of which sensor readout each movie format uses, for 1080p 3:2 and HD 60p.
 - [`alpha-dci-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-dci-0.1): XAVC
@@ -230,7 +228,7 @@ Where each feature stands, with the details and evidence, is in [ROADMAP.md](ROA
 - [`alpha-formats-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-formats-0.1):
   "4K 3:2 Open Gate" and "5.7K 3:2 Open Gate" in File Format.
 
-**Candidates:** anamorphic de-squeeze display, a Speed / Angle shutter menu, 1080p 3:2 open gate, a monitoring-only
+**Candidates:** anamorphic de-squeeze display, 1080p 3:2 open gate, a monitoring-only
 user LUT, Cine EI, Log shooting mode and Flexible ISO, in-camera time-lapse movie, a Big6-style main screen with
 waveform and false colour, and a binned full-frame 60p below 4K.
 
@@ -294,7 +292,7 @@ python3 -m venv .venv
     --public-key keys/published/A7M4_updater_public.pem --output out/open-gate
 ```
 
-Check out `main` for the beta build or `alpha` for the alpha build. The output folder gets `BODYDATA.DAT` and
+Check out `main` for the beta build, or a test build's branch for that build. The output folder gets `BODYDATA.DAT` and
 `verification.json`, which lists every input and output hash, the changed files and byte ranges, the signature check
 and the package audit. Any input that doesn't match its pinned hash stops the build.
 
