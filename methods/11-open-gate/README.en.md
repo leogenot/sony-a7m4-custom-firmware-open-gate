@@ -105,6 +105,8 @@ not at the workspace defaults.
 
 - **1080p open gate (1920x1280):** offline research, what it would take and the camera check that decides it:
   [HD-RESEARCH.md](HD-RESEARCH.md).
+- **Choosing open gate on movie:** offline research, why it is stills-only today and a probe build to test it:
+  [MOVIE-MODE-RESEARCH.md](MOVIE-MODE-RESEARCH.md).
 
 ## Credits and licenses
 
