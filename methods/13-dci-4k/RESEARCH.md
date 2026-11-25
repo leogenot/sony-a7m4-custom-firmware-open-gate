@@ -51,11 +51,12 @@ DCI greyed out. Running
 `0x1c20420` in an emulator on the v0.1.3 rows, with the A7 IV's feature index, gives the same visible set as the
 camera, and DCI hidden.
 
-**The lookups** (what `alpha-dci-0.1` changed) come after that, and weren't enough on their own. Option ids go through `0x1c18004`, which Erlla's custom
-firmware already hooks (`B 0x8fa1000`: its own ids 5607–5630 return themselves). The stock path calls `0x1c11044`, a
-lookup in a run-time map (a red-black tree, key at `+0x20`, candidate at `+0x24`) that, for each candidate of the
-id, calls a virtual check (`vtable +0x210`) and returns the first that passes, else `0x15d8`. Which candidates id 141
-has, and why they fail on the A7 IV, is decided by tables registered at start-up and isn't readable from the files.
+**The lookups** (what `alpha-dci-0.1` changed) come after that, and weren't enough on their own. Option ids go through
+`0x1c18004`, which Erlla's custom firmware already hooks (`B 0x8fa1000`: its own ids 5607–5630 return themselves). The
+stock path calls `0x1c11044`, a lookup in a run-time map (a red-black tree, key at `+0x20`, candidate at `+0x24`) that,
+for each candidate of the id, calls a virtual check (`vtable +0x210`) and returns the first that passes, else `0x15d8`.
+Which candidates id 141 has, and why they fail on the A7 IV, is decided by tables registered at start-up and isn't
+readable from the files.
 
 ## The Rec Frame Rate items
 
