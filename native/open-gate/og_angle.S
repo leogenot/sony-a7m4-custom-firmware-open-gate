@@ -66,7 +66,8 @@ og_angle_gate_entry:
 
 /* 0x1c1116c maps a menu item id through a start-up table. It is a leaf that only writes x0-x4, and appFw.so is built
  * by GCC 6.4 (-fipa-ra), so its caller may keep values in the other scratch registers: this entry writes nothing but
- * x0 and the flags (as Erlla's own entry at 0x8fb90e0, which it goes before). Item 441, Shutter Mode, maps to itself. */
+ * x0 and the flags (as Erlla's own entry at 0x8fb90e0, which it goes before). Item 441, Shutter Mode, maps to
+ * itself. */
     .global og_angle_map_item
     .type og_angle_map_item, %function
 og_angle_map_item:

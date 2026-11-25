@@ -91,10 +91,11 @@ The A7 IV already has the FX3's **Shutter Mode** item, complete, and lists it; o
 All texts are in the English function bank (`string_english_func_j.uxc`), so nothing is renamed. The live setter
 the dial build was missing is Sony's own commit: choosing a row changes the mode at once, with no cold boot.
 
-The A7 IV leaves the item out the same way it leaves out DCI ([DCI research](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha-dci/methods/13-dci-4k/RESEARCH.md)): the item
-check `0x1c08bc0`, the item map `0x1c1116c` and the option resolve `0x1c18004` don't know it. `alpha-angle-0.2` adds
-three hooks that go before Erlla's chains at those sites (as `alpha-dci-0.1` does for DCI): item 441 is supported,
-maps to itself, and options 1543 and 1544 resolve to themselves. Everything else is Sony's code. The trace adds
+The A7 IV leaves the item out the same way it leaves out DCI
+([DCI research](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha-dci/methods/13-dci-4k/RESEARCH.md)):
+the item check `0x1c08bc0`, the item map `0x1c1116c` and the option resolve `0x1c18004` don't know it.
+`alpha-angle-0.2` adds three hooks that go before Erlla's chains at those sites (as `alpha-dci-0.1` does for DCI):
+item 441 is supported, maps to itself, and options 1543 and 1544 resolve to themselves. Everything else is Sony's code. The trace adds
 `angle.item 441 <Sony's answer> 1` and `angle.option <option> <Sony's answer> <option>`, once each.
 
 Where it should show: **MENU → Exposure/Color → Exposure → Shutter Mode** (first item), as on the FX3. Sony

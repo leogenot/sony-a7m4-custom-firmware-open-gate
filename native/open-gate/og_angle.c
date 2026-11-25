@@ -9,10 +9,10 @@
  * whenever they change, and each drive step and refusal is traced too.
  *
  * The Shutter Mode menu item is Sony's own (the FX3's): the A7 IV lists it first under Exposure but its menu
- * lookups don't register it, as with DCI (methods/13-dci-4k on alpha-dci). Item 441 and its two options go through the same
- * three lookups Erlla's custom firmware chains for its own pages; this module goes first and answers for them the
- * way Erlla's code answers for its own: the item is supported and every id resolves to itself. Choosing a row runs
- * Sony's own commit (0x1cd40d8), which sets the mode live, saves it and tells the screens.
+ * lookups don't register it, as with DCI (methods/13-dci-4k on alpha-dci). Item 441 and its two options go through
+ * the same three lookups Erlla's custom firmware chains for its own pages; this module goes first and answers for
+ * them the way Erlla's code answers for its own: the item is supported and every id resolves to itself. Choosing a
+ * row runs Sony's own commit (0x1cd40d8), which sets the mode live, saves it and tells the screens.
  */
 #include <stdint.h>
 #include "og_angle.h"
@@ -76,6 +76,7 @@ uint32_t og_angle_resolve_option(uint32_t option)
 {
     uint32_t stock = og_angle_previous_resolve_option(option);
     if (option != OG_ANGLE_SPEED_OPTION && option != OG_ANGLE_ANGLE_OPTION) return stock;
-    if (first(option == OG_ANGLE_SPEED_OPTION ? TRACED_SPEED : TRACED_ANGLE)) og_diag("angle.option", option, stock, option, 0);   /* [DEBUG-og2] */
+    if (first(option == OG_ANGLE_SPEED_OPTION ? TRACED_SPEED : TRACED_ANGLE))
+        og_diag("angle.option", option, stock, option, 0);   /* [DEBUG-og2] */
     return option;
 }

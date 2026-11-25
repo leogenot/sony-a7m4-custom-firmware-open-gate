@@ -26,7 +26,11 @@ const volatile uint32_t *native_mode(void) { return no_dial ? 0 : &dial_value; }
 
 static int item_calls, option_calls;
 static void *seen_object;
-uint32_t og_angle_previous_item_supported(void *object, uint32_t item) { item_calls++; seen_object = object; return item == 1592; }
+uint32_t og_angle_previous_item_supported(void *object, uint32_t item)
+{
+    item_calls++, seen_object = object;
+    return item == 1592;
+}
 uint32_t og_angle_previous_resolve_option(uint32_t option) { option_calls++; return option == 5607 ? 5607 : 0x15d8; }
 
 int main(void)
@@ -69,7 +73,8 @@ int main(void)
               og_angle_item_supported(&object, 442) == 0 && og_angle_item_supported(&object, 42) == 0);
     CHECK("the chain sees every item call and its object", item_calls == 6 && seen_object == &object);
     CHECK("Speed and Angle resolve to themselves, every time",
-          og_angle_resolve_option(OG_ANGLE_SPEED_OPTION) == 1543 && og_angle_resolve_option(OG_ANGLE_ANGLE_OPTION) == 1544 &&
+          og_angle_resolve_option(OG_ANGLE_SPEED_OPTION) == 1543 &&
+              og_angle_resolve_option(OG_ANGLE_ANGLE_OPTION) == 1544 &&
               og_angle_resolve_option(OG_ANGLE_ANGLE_OPTION) == 1544);
     CHECK("other options keep the chain's answer", og_angle_resolve_option(5607) == 5607 &&
                                                        og_angle_resolve_option(1542) == 0x15d8 &&
