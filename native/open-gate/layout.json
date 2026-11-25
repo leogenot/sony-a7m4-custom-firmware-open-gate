@@ -46,13 +46,13 @@
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "ea6d0a6c57009120a71f49aa82eda077514fb292b3d07dce8124adef81e78abe",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
-  "og_dci.c": "61659f8b2e85f2dcb5295db23352017191fa07df152c6474c5cf7720d9696d02",
-  "og_dci.h": "a1835d0d387e119efa2a1390dcd1775854761bfed766ecf46e6b0a99a6e03730",
+  "og_dci.c": "11cd7ad4e9d2dc4c249a787258c56e4ff357de7398daeab028bda13c8cf8703b",
+  "og_dci.h": "b1cb84c72ca811c7ab7ae3f5c1c70d8b23aa44d1806e28910809a39c17495159",
   "og_dci.S": "01b000aa5ea91352ef6e0a5fe8edb36b1f0fb908a64ab45fb1104354fc76f6ac"
  },
  "module": {
-  "text_bytes": 47900,
-  "text_sha256": "06587d8f6bc576710c8a0924a5819b11080f23b4614b8590953a74b699e433af",
+  "text_bytes": 47748,
+  "text_sha256": "ccd38eefbf28a9bac6760e9975e945239483bd92e87959d0723251e8c36c04f8",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -109,14 +109,6 @@
    "what": "menu-item disabled check (w0 = mid, 1 = disabled: callers such as 0x1ba807c then show the 'currently disabled' caution through 0x1c14efc and do not open the item), first instruction: B to custom sounds' Volume filter (stock 6.02: stp x29, x30, [sp, #-0x20]!)"
   },
   {
-   "va": "0x1c08bc0",
-   "kind": "b",
-   "previous_target": "0x8fb90c8",
-   "previous_symbol": "og_dci_previous_item_supported",
-   "entry": "og_dci_item_supported",
-   "what": "[DCI] 'is this menu item supported?' (x0 object, w1 item id; called through a vtable), first instruction: B to Erlla's chain head (stock 6.02: stp x29, x30, [sp, #-0x90]!). Item 42, the DCI Rec Frame Rate, is."
-  },
-  {
    "va": "0x1c1116c",
    "kind": "b",
    "previous_target": "0x8fb90e0",
@@ -133,8 +125,8 @@
    "what": "[DCI] menu option id resolution (w0 option id), first instruction: B to Erlla's alias filter (stock 6.02: stp x29, x30, [sp, #-0x20]!). Options 141 (File Format DCI) and 202-204, 206, 207 (DCI 30p, 25p, 24p, 29.97p, 23.98p) resolve to themselves."
   }
  ],
- "row_edits": {
-  "what": "[DCI] 16-bit fields of option rows changed in place (a7m4/open_gate.py _edit_rows). Sony's row check 0x1c20420 reads a per-product flag at +0x44 + 2 x index; the index comes from 0x1c16460 -> 0x1c0bff4 and is 19 on the A7 IV (feature index 26, menu_item 0), so the flag is +0x6a. The row-list builder 0x1c0e52c (vtable slot 0x1a8, 0x1c0f12c) and the option check 0x1c08bc0 both use it; +0x30 picks an extra availability function from the table at 0x58f9db0 (entry 0 = always).",
+ "menu_edits": {
+  "what": "[DCI] 16-bit fields of menu records changed in place (a7m4/open_gate.py _edit_menu_records). Sony's row check 0x1c20420 reads a per-product flag at +0x44 + 2 x index; the index comes from 0x1c16460 -> 0x1c0bff4 and is 19 on the A7 IV (feature index 26, menu_item 0), so the flag is +0x6a. The row-list builder 0x1c0e52c (vtable slot 0x1a8, 0x1c0f12c) and the option check 0x1c08bc0 both use it; +0x30 picks an extra availability function from the table at 0x58f9db0 (entry 0 = always). Items have the same per-product flags in their leaf at +0x2c + 2 x index (0x1c2006c, reached from the item check 0x1c0f3ac at vtable slot 0x208), +0x52 on the A7 IV.",
   "edits": [
    {
     "va": "0x4007af0",
@@ -191,6 +183,14 @@
     "old": "0x0",
     "new": "0x1",
     "what": "DCI Rec Frame Rate: 23.98p, shown on the A7 IV (its frame-rate availability check stays Sony's)"
+   },
+   {
+    "va": "0x597ba50",
+    "title": "0x200a46f",
+    "at": "0x52",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "Rec Frame Rate item 42 (XAVC S-I DCI 4K's) leaf, shown on the A7 IV; the camera greyed DCI out in File Format with it hidden"
    }
   ]
  },

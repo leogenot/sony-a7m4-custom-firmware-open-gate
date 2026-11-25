@@ -2,10 +2,10 @@
  * Settings (methods/13-dci-4k/RESEARCH.md).
  *
  * Everything DCI records with is in the A7 IV's files (file format 12, its option row, the DCI frame-rate item 42,
- * size class 10, encoder and MP4 entries). The menu hides it: option ids go through 0x1c18004 and item ids through
- * 0x1c08bc0 and 0x1c1116c, which look them up in tables registered at start-up, where the A7 IV registers no DCI.
- * Erlla's custom firmware already chains those three to its own pages' ids; this module goes first and answers for
- * the DCI ids the way Erlla's code answers for its own: the item is supported and every id resolves to itself.
+ * size class 10, encoder and MP4 entries). The menu hides it with a per-product flag in the rows and the item's leaf,
+ * off for the A7 IV, which the build switches on (layout.json "menu_edits"). Option ids also go through 0x1c18004
+ * and item ids through 0x1c1116c, which Erlla's custom firmware chains to its own pages' ids; this module goes first
+ * and answers for the DCI ids the way Erlla's code answers for its own: every id maps or resolves to itself.
  * Everything else, including which frame rates NTSC or PAL shows, is still Sony's decision.
  *
  * The step log records, once per id, what Sony's chain answered and what this module returned, for the DCI ids and
@@ -17,7 +17,6 @@
 
 #define HIDDEN __attribute__((visibility("hidden")))
 
-extern uint32_t og_dci_previous_item_supported(void *object, uint32_t item) HIDDEN;   /* Erlla's chain, 0x8fb90c8 */
 extern uint32_t og_dci_previous_resolve_option(uint32_t option) HIDDEN;              /* Erlla's chain, 0x8fa1000 */
 extern const volatile uint32_t *dci_condition(void);   /* stock 0x2922784: setting 0x2530 (Sony: DCI row needs != 0) */
 
@@ -31,9 +30,9 @@ int og_dci_option(uint32_t option)
     return 0;
 }
 
-/* Traced once each: items 34 (File Format) and 39-42 (Rec Frame Rate, S-I 4K .. DCI); options 139-141 (File
- * Format S-I 4K, S-I HD, DCI) and 182-209 (Rec Frame Rate, S-I 4K .. DCI). Bit = id - the range's first id. */
-static uint64_t traced_items, traced_formats, traced_rates;
+/* Traced once each: options 139-141 (File Format S-I 4K, S-I HD, DCI) and 182-209 (Rec Frame Rate, S-I 4K .. DCI).
+ * Bit = id - the range's first id. */
+static uint64_t traced_formats, traced_rates;
 
 /* The value of setting 0x2530, which Sony's own check of the DCI row wants nonzero (the build makes that row always
  * available instead); 9 if the getter returns nothing. */
@@ -48,15 +47,6 @@ static int first(uint64_t *mask, uint32_t id, uint32_t lo, uint32_t hi)
     if (id < lo || id > hi) return 0;
     uint64_t bit = 1ull << (id - lo);
     return !(__atomic_fetch_or(mask, bit, __ATOMIC_RELAXED) & bit);
-}
-
-uint32_t og_dci_item_supported(void *object, uint32_t item)
-{
-    uint32_t stock = og_dci_previous_item_supported(object, item);
-    uint32_t answer = item == OG_DCI_ITEM ? 1u : stock;
-    if (first(&traced_items, item, 34, OG_DCI_ITEM) && (item == 34 || item >= 39))
-        og_diag("dci.item", item, stock, answer, 0);   /* [DEBUG-og2] */
-    return answer;
 }
 
 uint32_t og_dci_resolve_option(uint32_t option)

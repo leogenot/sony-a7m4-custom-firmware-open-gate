@@ -15,21 +15,13 @@ static int failures;
         else { printf("FAIL %s: %s (line %d)\n", name, #cond, __LINE__); failures++; }         \
     } while (0)
 
-static int item_calls, option_calls;
-static void *seen_object;
-uint32_t og_dci_previous_item_supported(void *object, uint32_t item) { item_calls++; seen_object = object; return item == 40; }
+static int option_calls;
 uint32_t og_dci_previous_resolve_option(uint32_t option) { option_calls++; return option == 139 ? 139 : 0x15d8; }
 static uint32_t condition_value;
 const volatile uint32_t *dci_condition(void) { return &condition_value; }
 
 int main(void)
 {
-    int object;
-    CHECK("item 42 is supported", og_dci_item_supported(&object, OG_DCI_ITEM) == 1);
-    CHECK("other items get the chain's answer",
-          og_dci_item_supported(&object, 40) == 1 && og_dci_item_supported(&object, 41) == 0 &&
-              og_dci_item_supported(&object, 36) == 0);
-    CHECK("the chain sees every item call and its object", item_calls == 4 && seen_object == &object);
 
     static const uint32_t through[] = {141, 202, 203, 204, 206, 207};
     int all = 1;

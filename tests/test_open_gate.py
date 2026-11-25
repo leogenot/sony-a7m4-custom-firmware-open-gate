@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from a7m4.common import ToolError
-from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _edit_rows, _linker_script, _uxc_records,
+from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _edit_menu_records, _linker_script, _uxc_records,
                             _uxc_texts, build, compile_module, compose_ap)
 from a7m4.open_gate_sites import (_CP_IMAGE_VA, _NATIVE, PRESETS, _ROOT, STEP1, _STORED_RECORD, Family, Mode, Run, SiteImage,
                                   Space, check_stock, compile_image, dmmcfg_edits, _layout, load_design, runs_of)
@@ -595,8 +595,8 @@ def composed(image, v013, tmp_path_factory):
     return module, Image(compose_ap(v013.data, module, _layout()))
 
 
-def row_edits():
-    return _layout().get("row_edits", {}).get("edits", [])
+def menu_edits():
+    return _layout().get("menu_edits", {}).get("edits", [])
 
 
 def takeover_places(v013):
@@ -619,7 +619,7 @@ def test_composed_appfw_changes_only_the_listed_places(composed, v013):
     hooks = [v013.offset(int(h["va"], 16)) for h in _layout()["hooks"]]
     allowed = [(0x38, 0x3a), (0x5e73000, 0x5e73000 + len(module.text)), (0x5e80000, 0x5e80000 + 17 * 56)]
     allowed += [(at, at + 4) for at in hooks] + [(at, at + n) for at, n in takeover_places(v013)]
-    edited = [v013.offset(int(e["va"], 16) + int(e["at"], 16)) for e in row_edits()]
+    edited = [v013.offset(int(e["va"], 16) + int(e["at"], 16)) for e in menu_edits()]
     allowed += [(at, at + 2) for at in edited]
     assert all(any(lo <= int(i) < hi for lo, hi in allowed) for i in differ)
     assert set(hooks) <= {int(i) & ~3 for i in differ}
@@ -722,8 +722,8 @@ def test_takeover_refuses_another_layout(v013):
 def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(composed, v013):
     module, out = composed
     hooks = _layout()["hooks"]
-    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled", "og_dci_item_supported",
-                                          "og_dci_map_item", "og_dci_resolve_option"]   # [DCI]
+    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled", "og_dci_map_item",
+                                          "og_dci_resolve_option"]   # [DCI]
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
@@ -795,7 +795,7 @@ def test_edit_bank_refuses_what_it_cannot_do():
 # --- [DCI] XAVC S-I DCI 4K in File Format and its Rec Frame Rate item ---------------------------------------------------
 
 FILE_FORMAT_LEAF, FILE_FORMAT_ROWS, DCI_RATE_LEAF, DCI_RATE_ROWS = 0x594df48, 0x4007570, 0x597ba50, 0x4069170
-DCI_HOOKS = {0x1c08bc0: 0x8fb90c8, 0x1c1116c: 0x8fb90e0, 0x1c18004: 0x8fa1000}   # site: Erlla's chain head
+DCI_HOOKS = {0x1c1116c: 0x8fb90e0, 0x1c18004: 0x8fa1000}   # site: Erlla's chain head (item map, option resolve)
 
 
 def rows(img, base, n):
@@ -855,8 +855,7 @@ def dci_host(tmp_path_factory):
 
 def test_og_dci_on_the_host(dci_host):
     assert not [line for line in dci_host if line.startswith("FAIL")]
-    for check in ("item 42 is supported", "other items get the chain's answer",
-                  "the chain sees every item call and its object", "DCI and its 30p/25p/24p options resolve to themselves",
+    for check in ("DCI and its 30p/25p/24p options resolve to themselves",
                   "DCI 60p, 50p, 59.94p and 24.00p keep the chain's answer", "other options keep the chain's answer",
                   "the chain sees every option call", "the option set is exactly the six"):
         assert f"ok {check}" in dci_host, check
@@ -884,22 +883,46 @@ def test_v013_row_check_reads_the_a7iv_flag(v013):
     assert shown == [136, 137, 138, 139, 140, 142]                                       # HS 4K .. S-I HD, "-"
 
 
-def test_composed_dci_rows_are_shown_on_the_a7iv(composed, v013):
+A7IV_ITEM_FLAG = 0x2c + 2 * 19   # +0x52: the same flag in an item's leaf (0x1c2006c)
+
+
+@needs_appfw
+def test_v013_item_check_reads_the_a7iv_leaf_flag(v013):
+    """Items carry the per-product flag too: 0x1c2006c reads the halfword at leaf + 0x2c + 2 x index and wants 1. It is
+    on for File Format's leaf and off for DCI's Rec Frame Rate leaf (item 42)."""
+    assert v013.branch(0x1c2007c) == ("bl", 0x1c16460) and v013.u32(0x1c20084) == 0x79405801   # ldrh w1, [x0, #0x2c]
+    assert v013.branch(0x1c20094) == ("b", 0x1c2005c) and v013.u32(0x1c20060) == 0x7100043f    # cmp w1, #1
+    assert v013.u32(FILE_FORMAT_LEAF + A7IV_ITEM_FLAG) & 0xffff == 1
+    assert v013.u32(DCI_RATE_LEAF + A7IV_ITEM_FLAG) & 0xffff == 0
+
+
+def test_composed_dci_rows_and_item_are_shown_on_the_a7iv(composed, v013):
     module, out = composed
-    for edit in row_edits():
+    for edit in menu_edits():
         va, at = int(edit["va"], 16), int(edit["at"], 16)
-        assert out.u32(va) == v013.u32(va) == edit["alias"]
+        expected = edit["alias"] if "alias" in edit else int(edit["title"], 16)
+        assert out.u32(va) == v013.u32(va) == expected
         assert v013.u32(va + at) & 0xffff == int(edit["old"], 16) and out.u32(va + at) & 0xffff == int(edit["new"], 16)
-    assert {e["alias"] for e in row_edits() if int(e["at"], 16) == A7IV_FLAG} == {141, 202, 203, 204, 206, 207}
+    assert {e["alias"] for e in menu_edits() if int(e["at"], 16) == A7IV_FLAG} == {141, 202, 203, 204, 206, 207}
+    assert [e["va"] for e in menu_edits() if "title" in e] == [hex(DCI_RATE_LEAF)]
+    assert out.u32(DCI_RATE_LEAF + A7IV_ITEM_FLAG) & 0xffff == 1
     assert out.u32(FILE_FORMAT_ROWS + 0x80 * 11 + 0x30) & 0xffff == 0                    # DCI: always available
     for i in (0, 1, 5, 8, 9):                                                            # 60p 50p 59.94p 24.00p -
         assert out.u32(DCI_RATE_ROWS + 0x80 * i + A7IV_FLAG) & 0xffff == 0
 
 
-def test_edit_rows_refuses_another_row_or_value(v013):
+def test_edit_menu_records_refuses_another_record_or_value(v013):
     loads = [s for s in v013.elf.iter_segments() if s["p_type"] == "PT_LOAD"]
-    edit = {"va": "0x4007af0", "alias": 141, "at": "0x6a", "old": "0x0", "new": "0x1"}
-    with pytest.raises(ToolError, match="not option 140"):
-        _edit_rows(bytearray(v013.data), loads, {"row_edits": {"edits": [edit | {"alias": 140}]}})
+    row = {"va": "0x4007af0", "alias": 141, "at": "0x6a", "old": "0x0", "new": "0x1"}
+    leaf = {"va": hex(DCI_RATE_LEAF), "title": "0x200a46f", "at": "0x52", "old": "0x0", "new": "0x1"}
+    edit = lambda e: _edit_menu_records(bytearray(v013.data), loads, {"menu_edits": {"edits": [e]}})
+    with pytest.raises(ToolError, match="alias 140"):
+        edit(row | {"alias": 140})
+    with pytest.raises(ToolError, match="title 0x200a466"):
+        edit(leaf | {"title": "0x200a466"})
     with pytest.raises(ToolError, match="expected old value"):
-        _edit_rows(bytearray(v013.data), loads, {"row_edits": {"edits": [edit | {"old": "0x1"}]}})
+        edit(row | {"old": "0x1"})
+    with pytest.raises(ToolError, match="outside the 0x80-byte record"):
+        edit(row | {"at": "0x7f"})
+    with pytest.raises(ToolError, match="outside the 0xc0-byte record"):
+        edit(leaf | {"at": "0xbf"})
