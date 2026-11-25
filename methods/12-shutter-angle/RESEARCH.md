@@ -2,9 +2,9 @@
 
 **Goal:** set the movie shutter as an angle (180°, 90°, …) with the camera's dial, like the FX3, on the A7 IV.
 
-**Status:** offline research done. Test builds `alpha-angle-0.1` (dial only) and `alpha-angle-0.3` (dial plus a
-Speed / Angle menu item) not yet run on a camera. `alpha-angle-0.2` is withdrawn: the DCI camera run showed the
-rows' per-product flag hides them, and 0.2 didn't set it.
+**Status:** offline research done. Test builds `alpha-angle-0.1` (dial only) and `alpha-angle-0.4` (dial plus a
+Speed / Angle menu item) not yet run on a camera. `alpha-angle-0.2` and `0.3` are withdrawn: the DCI camera runs
+showed a per-product flag in the rows and then in the item's leaf; 0.2 set neither, 0.3 only the rows'.
 
 ## What was already known
 
@@ -75,7 +75,7 @@ class), and whether it's the only guard, can't be settled offline.
 
 The override only lasts while the camera runs; nothing is saved. To go back: `bk w 0x02cf1702 00` (or install Beta).
 
-## The Shutter Mode menu item (`alpha-angle-0.3`)
+## The Shutter Mode menu item (`alpha-angle-0.4`)
 
 The A7 IV already has the FX3's **Shutter Mode** item, complete, and lists it; its rows are switched off for the
 A7 IV:
@@ -97,15 +97,16 @@ The A7 IV hides it the same way it hides DCI
 ([DCI research](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha-dci/methods/13-dci-4k/RESEARCH.md#what-hides-it)):
 Sony's row check `0x1c20420` reads a per-product flag at row `+0x44 + 2 x index`, index 19 on the A7 IV (`+0x6a`),
 and both Shutter Mode rows have it at 0. The row-list builder and the option check `0x1c08bc0` drop such rows. The
-rows' other condition (`+0x30`) is entry 0, always available.
+rows' other condition (`+0x30`) is entry 0, always available. Items carry the same flag in their leaf (`0x1c2006c`,
+leaf `+0x2c + 2 x index`, `+0x52` on the A7 IV), and the Shutter Mode leaf has it at 0 too.
 
-`alpha-angle-0.3` sets that flag to 1 for 1543 and 1544 (the build's row-edit step, `layout.json` `row_edits`), and
-keeps two hooks before Erlla's chains: the item map `0x1c1116c` (441 maps to itself) and the option resolve
-`0x1c18004` (1543 and 1544 resolve to themselves). Running `0x1c20420` in an emulator on the composed `appFw.so`, with
-the A7 IV's feature index, shows both rows and leaves every other row as it was. `alpha-angle-0.2` also hooked
-`0x1c08bc0` for "item 441"; that check takes an option alias, and option 441 is the "89M 4:2:2 10bit" bitrate,
-already shown, so 0.3 drops that hook. The trace adds `angle.option <option> <Sony's answer> <option>` once per row,
-which shows the menu reached the Shutter Mode rows.
+`alpha-angle-0.4` sets that flag to 1 for the leaf and for 1543 and 1544 (the build's edit step, `layout.json`
+`menu_edits`), and keeps two hooks before Erlla's chains: the item map `0x1c1116c` (441 maps to itself) and the option
+resolve `0x1c18004` (1543 and 1544 resolve to themselves). Running `0x1c2006c` and `0x1c20420` in an emulator on the
+composed `appFw.so`, with the A7 IV's feature index, passes the item and both rows and leaves every other record as it
+was. `alpha-angle-0.2` also hooked `0x1c08bc0` for "item 441"; that check takes an option alias, and option 441 is the
+"89M 4:2:2 10bit" bitrate, already shown, so 0.3 and later drop that hook. The trace adds `angle.option <option> <Sony's
+answer> <option>` once per row, which shows the menu reached the Shutter Mode rows.
 
 Where it should show: **MENU → Exposure/Color → Exposure → Shutter Mode** (first item), as on the FX3. Sony
 documents it on the FX3 for movie and S&Q; whether the A7 IV greys it out on stills is for the camera run.
@@ -123,10 +124,10 @@ documents it on the FX3 for movie and S&Q; whether the A7 IV greys it out on sti
 
 ## Camera tests
 
-On `alpha-angle-0.3`, switch angle mode on from the menu (M1). On `alpha-angle-0.1`, use service mode, as in
+On `alpha-angle-0.4`, switch angle mode on from the menu (M1). On `alpha-angle-0.1`, use service mode, as in
 `SHUTTER_ANGLE.md`: `bk w 0x02cf1702 01`, `bk s`, cold boot, start on movie.
 
-| Test (0.3 only) | Do this | Check |
+| Test (0.4 only) | Do this | Check |
 | --- | --- | --- |
 | M1 | Movie: MENU → Exposure/Color → Exposure → Shutter Mode → **Angle** | The item is there; the shooting screen shows the angle (180°) |
 | M2 | Shutter Mode → **Speed** | The screen shows a shutter speed again, at once |
