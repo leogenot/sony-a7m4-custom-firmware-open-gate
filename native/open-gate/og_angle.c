@@ -1,4 +1,4 @@
-/* [PROBE-angle] Shutter angle on the dial: test build only (methods/11-open-gate/SHUTTER-ANGLE-RESEARCH.md).
+/* [PROBE-angle] Shutter angle on the dial: test build only (methods/12-shutter-angle/RESEARCH.md).
  *
  * With the backup property 0x02cf1702 = 1 the camera shows the shutter as an angle, but turning the dial gives the
  * "unavailable" answer. The dial dispatcher (0x1baf328) reads the shutter mode (0x28f6e38: 0 speed, 1 angle) and,

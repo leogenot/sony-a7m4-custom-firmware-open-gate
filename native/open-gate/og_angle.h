@@ -1,4 +1,4 @@
-/* [PROBE-angle] Shutter angle on the dial: test build only (methods/11-open-gate/SHUTTER-ANGLE-RESEARCH.md).
+/* [PROBE-angle] Shutter angle on the dial: test build only (methods/12-shutter-angle/RESEARCH.md).
  * The angle-availability getter's 14 callers, the angle drive's 9 callers and the dial's "unavailable" call are
  * pointed at og_angle.S (layout.json hooks), which calls these with every scratch register kept. */
 #ifndef OG_ANGLE_H
