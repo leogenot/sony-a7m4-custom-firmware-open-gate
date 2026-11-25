@@ -716,7 +716,8 @@ def test_takeover_refuses_another_layout(v013):
 def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(composed, v013):
     module, out = composed
     hooks = _layout()["hooks"]
-    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"]
+    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"] + \
+        ["og_angle_gate_entry"] * 14 + ["og_angle_drive_entry"] * 9 + ["og_angle_refused_entry"]   # [PROBE-angle]
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
@@ -783,3 +784,81 @@ def test_edit_bank_refuses_what_it_cannot_do():
         _edit_bank(data, strings | {"replace": {"0x0200ab51": "Open Gate"}})
     with pytest.raises(ToolError, match="does not fit"):
         _edit_bank(data, strings | {"replace": {"0x0200ab5f": "A much longer label"}})
+
+
+# --- [PROBE-angle] shutter angle on the dial ---------------------------------------------------------------------------
+
+ANGLE_GATE, ANGLE_DRIVE, ANGLE_REFUSED, SHUTTER_MODE, DIAL_DISPATCHER = 0x293d634, 0x26e8b08, 0x26e898c, 0x28f6e38, 0x1baf328
+
+
+def branches_to(img, target, top=None):
+    """VA and kind of every B/BL in img's executable segments (below top) that lands on target."""
+    import numpy as np
+    found = []
+    for s in img.loads:
+        if not s["p_flags"] & 1 or (top is not None and s["p_vaddr"] >= top):
+            continue
+        words = np.frombuffer(img.data, "<u4", count=s["p_filesz"] // 4, offset=s["p_offset"]).astype(np.int64)
+        op, imm = words & 0xfc000000, words & 0x3ffffff
+        pc = s["p_vaddr"] + 4 * np.arange(len(words))
+        hit = ((op == 0x94000000) | (op == 0x14000000)) & (pc + 4 * (imm - ((imm & 0x2000000) << 1)) == target)
+        found += [(int(pc[i]), "bl" if op[i] == 0x94000000 else "b") for i in np.flatnonzero(hit)]
+    return found
+
+
+def angle_hooks(entry):
+    return [int(h["va"], 16) for h in _layout()["hooks"] if h["entry"] == entry]
+
+
+@needs_appfw
+def test_v013_angle_gate_drive_and_refusal_are_the_hooked_calls(v013):
+    """The getter returns HAITA entry 0x281 (base 0x84c2d20), its 14 callers and the drive's 9 are all the hooks, and
+    the dial dispatcher takes the angle branch only when that byte is 0."""
+    adrp = v013.u32(ANGLE_GATE)
+    page = (ANGLE_GATE & ~0xfff) + ((((adrp >> 5) & 0x7ffff) << 2 | (adrp >> 29) & 3) << 12)
+    assert adrp & 0x9f00001f == 0x90000000 and page == 0x7fcd000                       # adrp x0, 0x7fcd000
+    assert [v013.u32(ANGLE_GATE + 4 * i) for i in range(1, 5)] == [0x91348000, 0x9153d400, 0x910a0400, 0xd65f03c0]
+    assert branches_to(v013, ANGLE_GATE) == [(va, "bl") for va in angle_hooks("og_angle_gate_entry")]
+    assert branches_to(v013, ANGLE_DRIVE) == [(va, "bl") for va in angle_hooks("og_angle_drive_entry")]
+    assert v013.branch(0x1baf3d4) == ("bl", SHUTTER_MODE) and v013.u32(0x1baf3dc) == 0x710006bf   # cmp w21, #1
+    assert v013.branch(0x1baf3e4) == ("bl", ANGLE_GATE) and v013.u32(0x1baf3e8) == 0x39400000     # ldrb w0, [x0]
+    assert v013.branch(0x1baf40c) == ("bl", ANGLE_DRIVE) and v013.branch(0x1baf420) == ("bl", ANGLE_REFUSED)
+    assert v013.u32(0x1baf3ec) >> 24 == 0x35 and (v013.u32(0x1baf3ec) >> 5) & 0x7ffff == (0x1baf414 - 0x1baf3ec) // 4
+
+
+def test_composed_angle_calls_reach_the_probe(composed, v013):
+    module, out = composed
+    for entry, target, previous in (("og_angle_gate_entry", ANGLE_GATE, "og_angle_previous_gate"),
+                                    ("og_angle_drive_entry", ANGLE_DRIVE, "og_angle_previous_drive"),
+                                    ("og_angle_refused_entry", ANGLE_REFUSED, "og_angle_previous_refused")):
+        hooked = angle_hooks(entry)
+        assert branches_to(out, module.symbols[entry]) == [(va, "bl") for va in hooked]
+        assert module.symbols[previous] == target
+        # Below the module, exactly the hooked calls no longer reach the original.
+        before, after = (set(branches_to(img, target, top=module.text_va)) for img in (v013, out))
+        assert before - after == {(va, "bl") for va in hooked} and after <= before
+
+
+@pytest.fixture(scope="module")
+def angle_host(tmp_path_factory):
+    clang = shutil.which("clang") or shutil.which("cc")
+    if not clang:
+        pytest.skip("no host C compiler")
+    tmp = tmp_path_factory.mktemp("og_angle_host")
+    (tmp / "og_config.h").write_text(_config_header(_layout(), RECORD))
+    binary = tmp / "og_angle_host"
+    subprocess.run([clang, "-std=c11", "-D_DEFAULT_SOURCE", "-O1", "-g", "-Wall", "-Wextra", "-Werror", "-fno-strict-aliasing",
+                    "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-I", str(_NATIVE), "-I", str(tmp),
+                    str(_ROOT / "tests/native/og_angle_host.c"), str(_NATIVE / "og_angle.c"), "-o", str(binary)], check=True)
+    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return result.stdout.splitlines()
+
+
+def test_og_angle_on_the_host(angle_host):
+    assert not [line for line in angle_host if line.startswith("FAIL")]
+    for check in ("the real byte is read on every call", "outside angle mode on movie the real byte is returned",
+                  "angle mode on movie reads available even when inhibited",
+                  "angle mode on movie reads available when not inhibited", "no shutter mode: the real byte",
+                  "no dial: the real byte", "the trace calls return"):
+        assert f"ok {check}" in angle_host, check

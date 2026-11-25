@@ -43,11 +43,16 @@
   "og_internal.h": "cd6327a82a0479c5543fae75a3d27af9df80ffa6911e7ef3826ed1e49004ef70",
   "og_image.h": "feacf8160b1b28d0def68d423ad2a05a148f4c0ada83366a12a77d9bcd483b91",
   "og_sys.h": "d9376106c89f29fea29f2d374ef87b5dc30692f10920b5c8e18d7471b9d6db8a",
-  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6"
+  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
+  "og_diag.c": "6ad717b60fa46b3b12ba75514bb4e554cf1da099f1d30aac9836634796f63436",
+  "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
+  "og_angle.c": "5fa139ea9cbbd9cdb3dd446e8a77ee87741d4335f6d46a121ab66ae38a616ee5",
+  "og_angle.h": "12b5874ff96d5a525417d362aa139a881be643030c03f954e72bac3e74ef1ab5",
+  "og_angle.S": "480c4b24fd28ab140758ba17bf456389a5794970e0bc416a94fffbe0e08ff476"
  },
  "module": {
-  "text_bytes": 46444,
-  "text_sha256": "d991841ac0634ce27d6082743ab052fcfff111df05bdd036db058f333040fd9b",
+  "text_bytes": 47988,
+  "text_sha256": "a985bcc5bced6c37711ca87d9ab4f3a303265fcf96de7ee07699f3cc50a65681",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -75,7 +80,8 @@
  },
  "stock_functions": {
   "dlsym": "0x17166a0",
-  "native_mode": "0x28ecdf8"
+  "native_mode": "0x28ecdf8",
+  "shutter_mode": "0x28f6e38"
  },
  "hooks": [
   {
@@ -101,6 +107,198 @@
    "previous_symbol": "og_menu_previous_disabled",
    "entry": "og_menu_disabled",
    "what": "menu-item disabled check (w0 = mid, 1 = disabled: callers such as 0x1ba807c then show the 'currently disabled' caution through 0x1c14efc and do not open the item), first instruction: B to custom sounds' Volume filter (stock 6.02: stp x29, x30, [sp, #-0x20]!)"
+  },
+  {
+   "va": "0x1baf3e4",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 1 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1bc0398",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 2 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1bc6620",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 3 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1c9cd0c",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 4 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1eef168",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 5 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1f6281c",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 6 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1f6b724",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 7 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1fffa94",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 8 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x23648a4",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 9 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x2364a20",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 10 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x2365b0c",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 11 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x2365c88",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 12 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x2466530",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 13 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x26e8bc0",
+   "kind": "bl",
+   "previous_target": "0x293d634",
+   "previous_symbol": "og_angle_previous_gate",
+   "entry": "og_angle_gate_entry",
+   "what": "[PROBE-angle] shutter-angle availability read 14 of 14: BL to the generated getter 0x293d634 (HAITA entry 0x281; nonzero = inhibited)"
+  },
+  {
+   "va": "0x1935f40",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 1 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x1baf40c",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 2 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x1bc03cc",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 3 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x1bc6764",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 4 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x23648c8",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 5 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x2364a44",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 6 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x2365b30",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 7 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x2365cac",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 8 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x26e8c58",
+   "kind": "bl",
+   "previous_target": "0x26e8b08",
+   "previous_symbol": "og_angle_previous_drive",
+   "entry": "og_angle_drive_entry",
+   "what": "[PROBE-angle] angle drive call 9 of 9: BL to 0x26e8b08 (emits event 0x3fb8 with the step), traced then called"
+  },
+  {
+   "va": "0x1baf420",
+   "kind": "bl",
+   "previous_target": "0x26e898c",
+   "previous_symbol": "og_angle_previous_refused",
+   "entry": "og_angle_refused_entry",
+   "what": "[PROBE-angle] the dial dispatcher's angle-mode refusal: BL to the 'unavailable' feedback 0x26e898c, traced then called"
   }
  ],
  "camera": {
