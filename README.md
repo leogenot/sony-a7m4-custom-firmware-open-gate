@@ -234,6 +234,9 @@ Where each feature stands, with the details and evidence, is in [ROADMAP.md](ROA
 user LUT, Cine EI, Log shooting mode and Flexible ISO, in-camera time-lapse movie, a Big6-style main screen with
 waveform and false colour, and a binned full-frame 60p below 4K.
 
+**Planned:** an all-in-one tool to choose features, build the package, unlock the camera and read its logs, once
+the features can be combined in one build ([plan](ROADMAP.md#planned-an-all-in-one-tool)).
+
 **Not possible on this body:** full-frame 4K 60p (the sensor reads out too slowly), RAW over HDMI, a built-in
 variable ND, auto framing, and probably a manual base ISO switch.
 
