@@ -49,18 +49,18 @@ scripts; the blocker is making features combinable.
 | Choose features, build `BODYDATA.DAT` | `python -m a7m4.open_gate build`, reproducible from public inputs (Erlla's v0.1.3 package, the kit's designs, Zig, the published key) | Download and hash-check the inputs, build on the user's computer; no prebuilt combinations |
 | The 10-minute unlock | Erlla's M4 Camera Tool ([`no-fastboot-install/`](no-fastboot-install/README.en.md)) and the Mac port ZM4 | Run that step from the tool over USB (Windows needs the USB driver Erlla's tool installs; a Mac needs the admin password) |
 | Update the camera | Copy `BODYDATA.DAT` to the card, run Software Update on the camera | Copy the file and guide the camera steps |
-| Logs | `tools/og_read_diag.py` over the kit's read-only USB session | A button around it |
+| Logs | [`tools/og_read_diag.py`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha-movie/tools/og_read_diag.py) on the alpha test branches (a debug script), over the kit's read-only USB session | Bring it to `main`, then a button around it |
 
 **Prerequisites** (before the tool):
 
-- **Code space.** All our code shares one 48 KB block in `appFw.so`, nearly full (open gate alone about 46 KB; the
+- **Code space.** All our code shares one 48 KB block in `appFw.so`, nearly full (open gate alone about 45 KB; the
   movie-mode build has 4 bytes free). Combining features needs a second free region, like the one Erlla uses for the
   LUT screens.
 - **Feature switches.** Features share hook sites (DCI and the File Format formats both hook the option lookup at
   `0x1c18004`), so the module needs build-time switches and one combined handler per site.
 
 **Safety:** every combination is a firmware nobody has run. Offer camera-tested features by default, put untested
-ones behind an "experimental" switch, and block combinations known not to work together (DCI with open gate on).
+ones behind an "experimental" switch, and block combinations advised against (DCI with open gate on: open gate's sensor changes are made for 4K and 5.7K).
 
 **Order:**
 
