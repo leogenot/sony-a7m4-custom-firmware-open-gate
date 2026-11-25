@@ -9,7 +9,7 @@
  * whenever they change, and each drive step and refusal is traced too.
  *
  * The Shutter Mode menu item is Sony's own (the FX3's): the A7 IV lists it first under Exposure but its menu
- * lookups don't register it, as with DCI (methods/13-dci-4k). Item 441 and its two options go through the same
+ * lookups don't register it, as with DCI (methods/13-dci-4k on alpha-dci). Item 441 and its two options go through the same
  * three lookups Erlla's custom firmware chains for its own pages; this module goes first and answers for them the
  * way Erlla's code answers for its own: the item is supported and every id resolves to itself. Choosing a row runs
  * Sony's own commit (0x1cd40d8), which sets the mode live, saves it and tells the screens.
