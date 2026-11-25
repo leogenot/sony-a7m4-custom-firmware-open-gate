@@ -60,10 +60,8 @@ You also need an install tool, one of:
 > the [published key](keys/published/README.md) that v0.1.3's updater trusts, and anyone can sign with that key, so a
 > valid signature proves nothing about who made a package.
 
-Prefer to see exactly what changed? [sony-a7m4-open-gate-firmware](https://github.com/leogenot/sony-a7m4-open-gate-firmware)
-has the beta build as the 70 changed files plus a script that bundles them into v0.1.3's package. Compared with v0.1.3,
-only two partitions change, plus their checksums: `nflasha15` (the main program `appFw.so` and the 68 menu string
-banks) and `nflasha8` (`DmmCfg.bin`, 16 bytes).
+Compared with v0.1.3, only two partitions change, plus their checksums: `nflasha15` (the main program `appFw.so` and
+the 68 menu string banks) and `nflasha8` (`DmmCfg.bin`, 16 bytes).
 
 ## Install
 
@@ -103,8 +101,9 @@ that you own the camera, and that you accept every risk, including losing the ca
      Make sure the card holds **this project's** `BODYDATA.DAT`.
 4. **Run the update on the camera.** When the tool says **可以拔下 USB 开始更新** (you can unplug USB and start the
    update), unplug the cable with the camera still on. Go back to the shooting screen and open **Version / Software
-   Update** in the camera's menu. Check the target version: Erlla's guide shows 6.02 -> 6.01, the custom firmware's label. Choose
-   **执行** (Execute) and wait for the camera to restart. Start within the time the tool shows, about 10 minutes.
+   Update** in the camera's menu. Check the target version: Erlla's guide shows 6.02 -> 6.01, the custom firmware's
+   label. Choose **执行** (Execute) and wait for the camera to restart. Start within the time the tool shows, about
+   10 minutes.
 
    > [!WARNING]
    > Once the update starts, **don't turn the camera off or take the card out**, even if the tool's countdown runs out.
@@ -166,7 +165,7 @@ strength.
 - **On alpha**, they are in English whatever the camera language: card and file selection, delete confirmations, the
   adjustments, status and errors. The words are
   [Erlla's English labels](https://github.com/Erlla/sony-a7m4-custom-firmware/blob/main/methods/08-custom-lut/UI-LANGUAGES.en.md)
-  plus 16 more for status and error lines they don't cover ([list](native/open-gate/lut_labels.json)). A look you
+  plus 16 more for status and error lines they don't cover ([list](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha/native/open-gate/lut_labels.json)). A look you
   named exactly like one of the Chinese labels also shows in English. Long English lines haven't been checked on the
   camera's screen yet and may be cut off.
 
