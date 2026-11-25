@@ -18,6 +18,12 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 > Read the full [disclaimer and limitation of liability](#disclaimer-and-limitation-of-liability) before downloading.
 > If you don't accept it, don't use anything here.
 
+> [!WARNING]
+> **This is the `alpha-movie` branch: a test build, not for regular use.** It lets open gate be chosen and applied
+> with the switch on **movie**, which nobody has tried before, and writes a step log to `/setting/og_diag.txt`. If a
+> movie-mode apply ever freezes the camera, pull the battery: the next start resets open gate to Off. What it tests and
+> why: [movie-mode research](methods/11-open-gate/MOVIE-MODE-RESEARCH.md). For normal use, take beta from `main`.
+
 [Features](#features) · [Download](#download) · [Install](#install) · [Using the features](#using-the-features) ·
 [Limitations](#limitations) · [How open gate works](#how-open-gate-works) · [Build it yourself](#build-it-yourself) ·
 [Disclaimer](#disclaimer-and-limitation-of-liability)
@@ -44,6 +50,7 @@ There are two release channels. Pick one package; both install the same way.
 | Channel | Release | What's in it | `BODYDATA.DAT` SHA-256 |
 | --- | --- | --- | --- |
 | **Beta** (recommended) | [`beta-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.1) | Open gate and every v0.1.3 feature. Tested on a camera. Built from `main`. | `5ae4dc9e09d2f6eaee6ac84f3990dde2f7bdcd137a07d32341957d389b521a86` |
+| **Alpha, movie-mode test** | [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1) | Beta plus open gate chosen and applied on movie, with a step log. **Test build, not yet run on a camera.** Built from [`alpha-movie`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha-movie). | `93dbae0d56cfe3fdffbd6a1cc3fe7879da2a78c385a9c599b6fb219fbbfab528` |
 | **Alpha** | [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1) | Beta plus English LUT screens. **Not yet run on a camera.** Built from [`alpha`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha). | `52314214a75585b08534a458e53e10d1620dcf1b3c794801bc8d489f4e59ce50` |
 
 You also need an install tool, one of:
