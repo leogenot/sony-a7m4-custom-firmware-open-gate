@@ -18,6 +18,12 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 > Read the full [disclaimer and limitation of liability](#disclaimer-and-limitation-of-liability) before downloading.
 > If you don't accept it, don't use anything here.
 
+> [!WARNING]
+> **This is the `alpha-formats` branch: a test build, not for regular use.** File Format gains "4K 3:2 Open Gate" and
+> "5.7K 3:2 Open Gate", which set the matching 4K format and frame rate and apply open gate with the switch on movie
+> (with the crash guard from `alpha-movie`). It writes a step log to `/setting/og_diag.txt`. How it works:
+> [open gate as File Format entries](methods/11-open-gate/FILE-FORMATS.md). For normal use, take beta from `main`.
+
 [Features](#features) · [Download](#download) · [Install](#install) · [Using the features](#using-the-features) ·
 [Limitations](#limitations) · [How open gate works](#how-open-gate-works) · [Build it yourself](#build-it-yourself) ·
 [Disclaimer](#disclaimer-and-limitation-of-liability)
