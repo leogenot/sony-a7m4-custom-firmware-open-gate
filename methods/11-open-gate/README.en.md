@@ -87,9 +87,10 @@ not at the workspace defaults.
 
 ## Limits
 
-- Run on one camera (2026-11-24, `v0.1.3-open-gate.4`), set to NTSC and then to PAL: the family was detected each
-  time, 4K 3:2 and 5.7K 3:2 applied from the menu, were saved and re-checked at every shooting screen, and recorded
+- Run on one camera (2026-11-24, a diagnostic build of this code with a step trace), set to NTSC and then to PAL: the
+  family was detected each time, 4K 3:2 and 5.7K 3:2 applied from the menu, were saved and re-checked at every shooting screen, and recorded
   files at 3840x2560 and 5760x3840. The PAL presets are the kit's PAL designs (`ogsq880_v1`, `og57n880_v1`).
+  The released package, `beta-0.1`, was then installed and tested on the same camera and works.
 - Applied with the dial on stills only, as the kit does; with the dial on movie the next shooting screen retries,
   and Mode says it is currently disabled.
 - The menu works on the camera (check C8). An earlier build listed a new item of its own directly on Media; on the
