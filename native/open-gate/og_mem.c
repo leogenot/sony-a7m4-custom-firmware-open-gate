@@ -11,6 +11,7 @@
 #include "og_image.h"
 #include "og_sys.h"
 #include "og_config.h"
+#include "og_diag.h"   /* [DEBUG-og2] */
 
 typedef uint64_t (*dmm_alloc_fn)(uint32_t bytes, uint32_t *handle);
 typedef void (*dmm_free_fn)(uint32_t handle);
@@ -59,7 +60,8 @@ static og_status cp_hold(og_mem *m, uint32_t addr, uint32_t len)
     if (hi - lo > OG_DMM_BYTES) hi = lo + OG_DMM_BYTES;
     if (addr + len > hi) return OG_IO;
     poison(m, 0, hi - lo);
-    if (process.dma(DMA_FROM_CP, lo, m->phys, hi - lo)) return OG_IO;
+    int rc = process.dma(DMA_FROM_CP, lo, m->phys, hi - lo);
+    if (rc) { og_diag("cp.dma.read", lo, hi - lo, (uint64_t)(int64_t)rc, m->phys); return OG_IO; }   /* [DEBUG-og2] */
     m->lo = lo;
     m->hi = hi;
     return OG_OK;
@@ -87,9 +89,13 @@ static og_status cp_write(og_mem *m, uint32_t addr, const uint8_t *src, uint32_t
     poison(m, from, to);
     if (process.dma(DMA_FROM_CP, lo, phys, hi - lo)) goto lost;
     for (uint32_t i = 0; i < len; i++)
-        if (m->buf[at + i] != src[i]) return OG_IO;
+        if (m->buf[at + i] != src[i]) {
+            og_diag("cp.readback", addr, len, og_diag_pack((const uint8_t *)m->buf + at, len), 0);   /* [DEBUG-og2] */
+            return OG_IO;
+        }
     return OG_OK;
 lost:
+    og_diag("cp.dma.lost", addr, len, lo, hi);   /* [DEBUG-og2] */
     m->lo = m->hi = 0;
     return OG_IO;
 }
@@ -125,6 +131,7 @@ static og_status locate(og_mem *m, uint32_t drive_mode, uint32_t *record)
             return OG_OK;
         }
     }
+    og_diag("locate.missing", drive_mode, n, 0, 0);   /* [DEBUG-og2] */
     return OG_FOREIGN;
 }
 
@@ -148,6 +155,7 @@ static og_status detect(og_mem *m, og_family *family)
         if (s == OG_FOREIGN) continue;
         if (s != OG_OK) return s;
         int hit = og_record_matches((og_family)f, read_record, &c);
+        og_diag("detect.family", f, c.record, (uint64_t)(int64_t)hit, 0);   /* [DEBUG-og2] */
         if (hit < 0) return OG_IO;
         if (hit) {
             matches++;
@@ -155,6 +163,7 @@ static og_status detect(og_mem *m, og_family *family)
             m->record = c.record;
         }
     }
+    og_diag("detect", matches, matches == 1 ? *family : 9, 0, 0);   /* [DEBUG-og2] */
     return matches == 1 ? OG_OK : OG_FOREIGN;
 }
 
@@ -304,13 +313,23 @@ og_status og_mem_write(og_mem *m, og_space space, uint32_t addr, const void *src
         if (!avcam_range(addr, len)) return OG_IO;
         for (uint32_t i = 0; i < len; i++) m->avcam[addr - OG_AVCAM_MAP_OFFSET + i] = bytes[i];
         for (uint32_t i = 0; i < len; i++)
-            if (m->avcam[addr - OG_AVCAM_MAP_OFFSET + i] != bytes[i]) return OG_IO;
+            if (m->avcam[addr - OG_AVCAM_MAP_OFFSET + i] != bytes[i]) {
+                og_diag("avcam.readback", addr, len, i, 0);   /* [DEBUG-og2] */
+                return OG_IO;
+            }
         /* The kernel's own view of the same bytes. */
-        return og_pread(m->mem_fd, back, len, OG_AVCAM_PHYS + addr) == (long)len && og_same(back, bytes, len) ? OG_OK
-                                                                                                            : OG_IO;
+        {
+            long got = og_pread(m->mem_fd, back, len, OG_AVCAM_PHYS + addr);
+            if (got == (long)len && og_same(back, bytes, len)) return OG_OK;
+            og_diag("avcam.pread", addr, len, (uint64_t)got, 0);   /* [DEBUG-og2] */
+            return OG_IO;
+        }
     case OG_MPR:
         if (!mpr_range(addr, len)) return OG_IO;
-        if (og_pwrite(m->self_fd, bytes, len, process.mpr + addr) != (long)len) return OG_IO;
+        {
+            long put = og_pwrite(m->self_fd, bytes, len, process.mpr + addr);   /* [DEBUG-og2] */
+            if (put != (long)len) { og_diag("mpr.pwrite", addr, len, (uint64_t)put, process.mpr); return OG_IO; }
+        }
         return og_pread(m->self_fd, back, len, process.mpr + addr) == (long)len && og_same(back, bytes, len) ? OG_OK
                                                                                                          : OG_IO;
     default:

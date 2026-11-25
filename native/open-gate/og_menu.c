@@ -19,6 +19,7 @@
 #include "og.h"
 #include "og_menu.h"
 #include "og_config.h"
+#include "og_diag.h"   /* [DEBUG-og2] */
 
 #define HIDDEN __attribute__((visibility("hidden")))
 
@@ -28,21 +29,31 @@ extern const volatile uint32_t *native_mode(void);             /* stock getter: 
 /* 0: nothing staged; otherwise the raw value the native setter staged while browsing, plus 1. */
 static uint32_t staged;
 
+static uint32_t last_getter;   /* [DEBUG-og2] last logged value + 1; 0: none yet */
+
 uint32_t og_menu_getter(void)
 {
     uint32_t raw = __atomic_load_n(&staged, __ATOMIC_ACQUIRE);
-    return raw ? raw - 1 : (uint32_t)og_selected();
+    uint32_t value = raw ? raw - 1 : (uint32_t)og_selected();
+    if (value + 1 != __atomic_exchange_n(&last_getter, value + 1, __ATOMIC_RELAXED))
+        og_diag("menu.getter", value, raw, 0, 0);   /* [DEBUG-og2] only when it changes */
+    return value;
 }
 
 void og_menu_setter(uint32_t raw)
 {
+    og_diag("menu.setter", raw, __atomic_load_n(&staged, __ATOMIC_RELAXED), 0, 0);   /* [DEBUG-og2] */
     if (raw < OG_MODE_COUNT) __atomic_store_n(&staged, raw + 1, __ATOMIC_RELEASE);
 }
 
 int og_menu_commit(uint32_t alias)
 {
     uint32_t mode = alias - OG_MENU_ALIAS_BASE;
-    int ok = mode < OG_MODE_COUNT && og_select((og_mode)mode) == OG_OK;
+    og_diag("menu.commit", alias, mode, __atomic_load_n(&staged, __ATOMIC_RELAXED), 0);   /* [DEBUG-og2] */
+    og_status s = mode < OG_MODE_COUNT ? og_select((og_mode)mode) : OG_FOREIGN;
+    int ok = mode < OG_MODE_COUNT && s == OG_OK;
+    og_diag("menu.commit.done", alias, mode, s, ok);   /* [DEBUG-og2] */
+    og_diag_sync();
     __atomic_store_n(&staged, 0, __ATOMIC_RELEASE);
     return ok;
 }
@@ -53,7 +64,12 @@ static uint32_t in_movie(void)
     return dial && *dial == OG_DIAL_MOVIE;
 }
 
+static uint32_t last_disabled;   /* [DEBUG-og2] last logged value + 1; 0: none yet */
+
 uint32_t og_menu_disabled(uint32_t mid)
 {
-    return mid == OG_MENU_MID ? in_movie() : og_menu_previous_disabled(mid);
+    if (mid != OG_MENU_MID) return og_menu_previous_disabled(mid);
+    uint32_t r = in_movie();
+    if (r + 1 != __atomic_exchange_n(&last_disabled, r + 1, __ATOMIC_RELAXED)) og_diag("menu.disabled", r, mid, 0, 0);   /* [DEBUG-og2] */
+    return r;
 }
