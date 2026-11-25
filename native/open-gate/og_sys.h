@@ -23,6 +23,7 @@ static inline long og_read(long fd, void *dst, unsigned long n) { return read((i
 static inline long og_write(long fd, const void *src, unsigned long n) { return write((int)fd, src, n); }
 static inline long og_fsync(long fd) { return fsync((int)fd); }
 static inline long og_rename(const char *from, const char *to) { return renameat(AT_FDCWD, from, AT_FDCWD, to); }
+static inline long og_unlink(const char *path) { return unlinkat(AT_FDCWD, path, 0); }
 
 #else
 
@@ -37,7 +38,7 @@ static inline long og_rename(const char *from, const char *to) { return renameat
 #define OG_PROT_RW 0x3L
 #define OG_MAP_SHARED 0x1L
 
-enum { SYS_RENAMEAT = 38, SYS_OPENAT = 56, SYS_CLOSE = 57, SYS_READ = 63, SYS_WRITE = 64, SYS_PREAD64 = 67,
+enum { SYS_UNLINKAT = 35, SYS_RENAMEAT = 38, SYS_OPENAT = 56, SYS_CLOSE = 57, SYS_READ = 63, SYS_WRITE = 64, SYS_PREAD64 = 67,
        SYS_PWRITE64 = 68, SYS_FSYNC = 82, SYS_MUNMAP = 215, SYS_MMAP = 222 };
 
 static inline long og_svc(long n, long a, long b, long c, long d, long e, long f)
@@ -76,6 +77,7 @@ static inline long og_rename(const char *from, const char *to)
 {
     return og_svc(SYS_RENAMEAT, OG_AT_FDCWD, (long)from, OG_AT_FDCWD, (long)to, 0, 0);
 }
+static inline long og_unlink(const char *path) { return og_svc(SYS_UNLINKAT, OG_AT_FDCWD, (long)path, 0, 0, 0, 0); }
 /* Returns the mapping, or 0 on failure (the kernel returns -4095..-1). */
 static inline void *og_mmap(unsigned long len, long fd, uint64_t offset)
 {

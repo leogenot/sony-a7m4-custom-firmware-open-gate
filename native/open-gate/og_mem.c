@@ -155,7 +155,6 @@ static og_status detect(og_mem *m, og_family *family)
         if (s == OG_FOREIGN) continue;
         if (s != OG_OK) return s;
         int hit = og_record_matches((og_family)f, read_record, &c);
-        og_diag("detect.family", f, c.record, (uint64_t)(int64_t)hit, 0);   /* [DEBUG-og2] */
         if (hit < 0) return OG_IO;
         if (hit) {
             matches++;
@@ -163,7 +162,6 @@ static og_status detect(og_mem *m, og_family *family)
             m->record = c.record;
         }
     }
-    og_diag("detect", matches, matches == 1 ? *family : 9, 0, 0);   /* [DEBUG-og2] */
     return matches == 1 ? OG_OK : OG_FOREIGN;
 }
 

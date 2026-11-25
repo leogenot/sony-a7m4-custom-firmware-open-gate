@@ -380,15 +380,19 @@ def test_not_ready_writes_nothing(camera):
 
 
 def test_select_persists_and_power_on_restores(host, image, files, setting):
+    """[PROBE-movie] Both entry points apply on movie too, each behind the guard file, which is gone afterwards."""
     first = Camera(host, files, Family.NTSC, image)
     assert first.send("selected") == ["mode", "0"]
     assert first.send("power_on") == ["reads", "0", "writes", "0"]   # Off and nothing applied: no memory access
     assert first.send("dial 3") == ["ok"]
-    assert first.status("select 1")[0] == WRONG_DIAL
-    assert first.send("dial 0") == ["ok"]
-    assert first.status("select 1")[0] == OK
+    assert first.status("select 1")[0] == OK                         # movie: applied
     assert first.send("selected") == ["mode", "1"]
     assert first.diff() == state_of(Mode.UHD_32, Family.NTSC)
+    assert not (setting / "open_gate.try").exists()
+    assert first.send("dial 0") == ["ok"]
+    assert first.status("select 2")[0] == OK                         # stills: as before
+    assert first.diff() == state_of(Mode.K57_32, Family.NTSC)
+    assert first.status("select 1")[0] == OK
     record = (setting / "open_gate.dat").read_bytes()
     assert record == struct.pack("<4sIII", b"OGT1", 1, 1, 0xfffffffe)
     assert not (setting / "open_gate.tmp").exists()
@@ -396,15 +400,26 @@ def test_select_persists_and_power_on_restores(host, image, files, setting):
 
     second = Camera(host, files, Family.NTSC, image)
     assert second.send("dial 3") == ["ok"]
-    assert second.send("power_on")[3] == "0"        # movie: nothing written
-    assert second.diff() == {}
-    assert second.send("dial 0") == ["ok"]
-    second.send("power_on")
+    second.send("power_on")                                          # start-up on movie: applied
     assert second.diff() == state_of(Mode.UHD_32, Family.NTSC)
-    assert second.send("power_on")[3] == "0"        # already in place: reads only
+    assert second.send("power_on")[3] == "0"                         # already in place: reads only
+    assert not (setting / "open_gate.try").exists()
     assert second.status("select 0")[0] == OK
     assert second.diff() == {} and second.send("load") == ["mode", "0"]
     second.close()
+
+
+def test_a_left_guard_file_starts_at_off(host, image, files, setting):
+    """[PROBE-movie] A guard file at the first load: the last movie apply never returned, so Off, saved, guard gone."""
+    (setting / "open_gate.dat").write_bytes(struct.pack("<4sIII", b"OGT1", 1, 2, 0xfffffffd))
+    (setting / "open_gate.try").write_bytes(b"")
+    cam = Camera(host, files, Family.NTSC, image)
+    assert cam.send("dial 3") == ["ok"]
+    assert cam.send("power_on") == ["reads", "0", "writes", "0"]
+    assert cam.send("selected") == ["mode", "0"] and cam.diff() == {}
+    assert (setting / "open_gate.dat").read_bytes() == struct.pack("<4sIII", b"OGT1", 1, 0, 0xffffffff)
+    assert not (setting / "open_gate.try").exists()
+    cam.close()
 
 
 def test_bad_record_files_mean_off(host, image, files, setting):
@@ -552,7 +567,7 @@ def test_og_menu_callbacks_on_the_host(menu_host):
     for check in ("getter reflects og_selected", "setter stages the browsed value", "commit selects the option's mode",
                   "commit reports any other status as failure", "a failed commit drops the staged value",
                   "commit refuses an alias below the item's", "commit refuses an alias above the item's",
-                  "disabled is 1 exactly in movie", "disabled is 0 without a dial",
+                  "disabled is 0 in every dial position", "disabled is 0 without a dial",
                   "the item never reaches the previous check", "other mids chain to the previous check"):
         assert f"ok {check}" in lines, check
     assert lines.count("ok commit reports any other status as failure") == 7   # OG_BUSY .. OG_NOT_SAVED

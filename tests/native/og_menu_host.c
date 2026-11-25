@@ -86,11 +86,11 @@ int main(void)
           og_menu_commit(OG_MENU_ALIAS_BASE + OG_MODE_COUNT) == 0 && og_menu_commit(0xffffffffu) == 0 &&
               select_calls == calls);
 
-    /* disabled: 1 = the camera shows "currently disabled", so 1 in movie only; every other mid goes to the previous
-     * check */
+    /* disabled: 1 = the camera shows "currently disabled". [PROBE-movie] The item is enabled in every dial position,
+     * movie included; every other mid goes to the previous check */
     for (uint32_t d = 0; d < 6; d++) {
         dial = d;
-        CHECK("disabled is 1 exactly in movie", og_menu_disabled(OG_MENU_MID) == (d == OG_DIAL_MOVIE));
+        CHECK("disabled is 0 in every dial position", og_menu_disabled(OG_MENU_MID) == 0);
     }
     dial_missing = 1;
     CHECK("disabled is 0 without a dial", og_menu_disabled(OG_MENU_MID) == 0);
