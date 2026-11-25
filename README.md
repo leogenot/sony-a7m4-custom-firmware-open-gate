@@ -1,196 +1,322 @@
-# Sony A7 IV 自定义固件与工具
+# Sony A7 IV custom firmware with open gate
 
-> [!WARNING]
-> **使用前必读 · 免责声明与使用许可**
+[Erlla's custom firmware v0.1.3](https://github.com/Erlla/sony-a7m4-custom-firmware) for the Sony A7 IV (ILCE-7M4),
+with **open gate** added: 4K 3:2 and 5.7K 3:2 video from the whole sensor, set from the camera's menu. The **custom
+LUTs** and every other v0.1.3 feature stay. The **custom shutter and focus sound menus** are removed: their page
+became the Open Gate page.
+
+> [!CAUTION]
+> **Experimental, unofficial firmware. Use entirely at your own risk.**
 >
-> 本项目属于非官方独立研究，免费提供固件修改方法、工具和文档，供学习与技术交流。项目与索尼无隶属、授权或背书关系。
+> - **Tested on one camera so far.** On an A7 IV set to NTSC and then to PAL, 4K 3:2 and 5.7K 3:2 apply from the menu
+>   and record files at their full size.
+> - Installing it can **permanently brick the camera**, cause boot loops or malfunctions, destroy photos, videos,
+>   settings or calibration, and **void the warranty** or make Sony refuse repairs.
+> - It is provided **"as is", with no warranty of any kind**. The authors and contributors **accept no responsibility
+>   or liability** for any damage, loss or cost from using it. You alone are responsible for what you do with it.
+> - **Not affiliated with, authorized or endorsed by Sony.**
 >
-> **GPLv3 开源许可。** 本项目原创内容自本次许可变更起采用 [GNU GPLv3（GPL-3.0-only）](LICENSE)，允许使用、修改、分享及商业用途，包括商业摄影、软件销售和收费服务。分发适用程序或修改版本时，须按 GPLv3 保留许可与版权声明，并满足对应源代码的提供要求。历史 MIT 内容及第三方组件按各自许可处理。
->
-> 作者免费提供本项目，不提供有偿代刷服务，也未授权任何人以作者名义开展收费业务。严禁冒充索尼官方、作者本人或授权服务商，或以这些身份宣传、收费和承诺保修。第三方收费行为由其自行负责。
->
-> **开发基线与兼容范围**
->
-> **本固件基于中国大陆国行 A7M4 机身及索尼原厂 FE 50mm F1.4 GM 镜头开发。非原厂镜头可能遇到未知的兼容性问题。**
->
-> 刷写或修改固件可能导致永久变砖、无法开机、反复重启、功能异常及照片、校准或配置丢失，也可能影响官方更新、保修或维修。接线错误可能损坏相机与电脑。写入成功及读回一致仍需通过实际启动和功能验证，恢复功能也可能无法救回相机。
->
-> **任何写入前先备份自己的相机与重要数据。固件更新必须使用索尼原厂电池。** 写入期间保持稳定供电与连接，避免拔线、关机或移除存储卡。USB 插拔按工具明确提示执行。恢复本机应使用本机备份。
->
-> **强烈建议在备妥可用的 Fastboot 工具、Multi 接口刷机线及 RP2040-Zero 启动桥后，再进行固件更新**，以便异常时进行维护与恢复。
->
-> **建议在 AI Agent 的辅助下进行固件安装。** 大部分常见的安装、驱动和 USB 连接问题，可借助 AI Agent 结合本项目文档、完整报错信息和运行日志进行排查与处理。
->
-> **仅操作本人合法持有或已获明确授权的设备。** 请先理解操作流程并完成备份，自行承担设备损坏与维修风险。无法接受这些风险时请退出。
+> Read the full [disclaimer and limitation of liability](#disclaimer-and-limitation-of-liability) before downloading.
+> If you don't accept it, don't use anything here.
 
-> [!TIP]
-> **滤镜与音频下载**
->
-> - **[α7 IV 滤镜库](https://erlla.github.io/sony-a7m4-custom-firmware/)** · 按富士、理光、柯达和徕卡筛选，下载机身 JSON 或 Lightroom XMP，查看每款滤镜的平均色差（ΔE00）、P95 和更新日期。
-> - **[α7 IV 音频库](https://erlla.github.io/sony-a7m4-custom-firmware/sounds.html)** · 在线试听并下载自定义快门声和对焦声音（WAV）。
+[Download](#download) · [Install](#install) · [Features and how to use them](#features-and-how-to-use-them) ·
+[How open gate works](#how-open-gate-works) · [Build it yourself](#build-it-yourself) · [What's in this repo](#whats-in-this-repo) ·
+[Disclaimer](#disclaimer-and-limitation-of-liability)
 
-[English](README.en.md) · 中文
+Erlla's original README: [English](README.en.md) · [中文](README.zh-CN.md)
 
-**机型与安装基线为 Sony ILCE-7M4（A7 IV / A7M4），安装前固件版本须为索尼官方 V6.02。**
+## Download
 
-**目前已有国行、港版、日版和加拿大版 A7M4 机身刷入成功的反馈。除国行外，其他地区版本不保证兼容性。**
+| What | Where |
+| --- | --- |
+| The installable package | `BODYDATA.DAT` on the release [`beta-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.1), SHA-256 `5ae4dc9e09d2f6eaee6ac84f3990dde2f7bdcd137a07d32341957d389b521a86` |
+| The same build, unbundled | [sony-a7m4-open-gate-firmware](https://github.com/leogenot/sony-a7m4-open-gate-firmware): the 70 changed files and a script that bundles them into v0.1.3's package |
+| The install tool | `M4_1.03_Windows_x64.zip` from Erlla's [v0.1.3 release](https://github.com/Erlla/sony-a7m4-custom-firmware/releases/tag/A7M4-ToolKit-v0.1.3) |
+| The install tool on a Mac | `ZM4-release-v1.0.3.dmg` from [Hippasu/A7m4-Z4M-firmware-for-mac](https://github.com/Hippasu/A7m4-Z4M-firmware-for-mac/releases/latest) (third party, Apple Silicon only) |
 
-提供免 Fastboot 安装方法、Fastboot 维护工具与固件功能修改源码。各方法的适用基线以对应文档中的文件哈希为准。
+Compared with v0.1.3, only two partitions change, plus their checksums: `nflasha15` (the camera's main program
+`appFw.so` and the 68 menu string banks) and `nflasha8` (`DmmCfg.bin`, 16 bytes). It is signed with the
+[published key](keys/published/README.md) v0.1.3's updater trusts. Anyone can sign with that key, so a valid signature
+proves nothing about who made a package: check the SHA-256 above.
 
-## 一、免 Fastboot 安装固件
+## Install
 
-使用普通 USB 数据线，通过 **M4 相机工具**准备更新环境，再由相机从 SD 卡安装固件。相机须能正常开机并进入 USB 海量存储模式。
+Same route as Erlla's v0.1.3, without Fastboot hardware
+([Erlla's full guide with screenshots](no-fastboot-install/README.en.md)).
 
-### AI Agent 模式（1.03）
+By installing, you confirm you have read and accept the [disclaimer](#disclaimer-and-limitation-of-liability), that
+you own the camera, and that you accept every risk, including losing the camera.
 
-**模型建议：使用 [DeepSeek V4.1 Flash](https://api-docs.deepseek.com/news/news261017/)，或推理、代码与工具调用能力不低于该级别的大模型；Agent 还须具备联网、本机文件访问和命令执行能力。**
+**Before you start**
+- Back up everything you care about from the camera and its cards. Have a recovery plan: Erlla recommends keeping
+  Fastboot tools, a Multi-port flashing cable and an RP2040-Zero boot bridge at hand
+  ([Fastboot maintenance](README.en.md#2-fastboot-modification-methods)); without them, a failed install may not be
+  recoverable.
+- The camera must be an ILCE-7M4 on **official Sony firmware 6.02** and must boot normally. Erlla reports successful
+  installs on mainland China, Hong Kong, Japan and Canada-market cameras; other regions aren't guaranteed.
+- Use an **original Sony battery**, charged enough for a firmware update, and keep the power stable.
+- You need a **Windows PC** for Erlla's M4 Camera Tool, or an **Apple Silicon Mac** for ZM4 (see below).
+- If the camera runs v0.1.3 and you switched on a **custom shutter or focus sound**, switch it off **before**
+  installing. The choice is saved in the camera, and this build has no menu to turn it off.
 
-把下面整段复制给能够联网、访问本机文件并执行命令的本地 AI Agent。它会下载正式工具、逐步提示操作，也支持单独恢复普通 USB。
+**On a Mac (Apple Silicon only):** [ZM4](https://github.com/Hippasu/A7m4-Z4M-firmware-for-mac), a third-party macOS
+port of Erlla's tool, does the same updater patch. Download `ZM4-release-v1.0.3.dmg` from its
+[latest release](https://github.com/Hippasu/A7m4-Z4M-firmware-for-mac/releases/latest), drag ZM4 to Applications and follow
+its steps instead of steps 2 and 3 below; the update on the camera (step 4) is the same. Its release also ships a
+`BODYDATA.DAT`: that one is Erlla's v0.1.3 itself (SHA-256 `cfb79295…`), without open gate, so put **this build's**
+`BODYDATA.DAT` on the card. If macOS
+says the app is damaged, see the quarantine fix in [its README](https://github.com/Hippasu/A7m4-Z4M-firmware-for-mac#mac常见问题).
+ZM4 isn't part of this project and hasn't been tested with this build.
 
-```text
-请先提醒我：建议使用 DeepSeek V4.1 Flash 或能力相当及以上的大模型，且 Agent 须支持联网、本机文件访问和命令执行。
+**Steps**
+1. Copy `BODYDATA.DAT` to the **root of the card in slot 1**, not in a folder, and put the card in the camera.
+2. Extract the M4 Camera Tool to a short path such as `D:\M4`. Turn the camera on, set **MENU > Setup > USB > USB
+   Connection Mode** to **Mass Storage**, and connect it to the PC. Run `M4相机工具.exe` and approve the administrator
+   prompt. The first run installs drivers and can take a while.
+3. Tick **相机已开机，USB 已连接，电量充足** (camera on, USB connected, battery charged) and click **写入补丁** (Write
+   patch). The tool backs up and patches the camera's updater partition, then reads it back. If it asks you to
+   reconnect USB, keep the camera on and do so.
+4. When it shows **可以拔下 USB 开始更新** (you can unplug USB and start the update), unplug the cable with the camera
+   still on, go back to the shooting screen, and open **Version / Software Update** in the camera's menu. Check the
+   target version (Erlla's guide shows 6.02 -> custom 6.01, the custom firmware's label), choose **执行** (Execute),
+   and wait for the camera to restart. Start within the time the tool shows, about 10 minutes. **Once the update
+   starts, don't turn the camera off or take the card out, even if the tool's countdown runs out.**
+5. After the restart, check that the camera shoots, saves and plays back. Reconnect USB and click **更新已结束** (update
+   finished). Click **恢复普通 USB** (restore normal USB) to get the camera's normal USB connection back.
 
-请完整阅读并遵循项目最新的 Agent 操作说明：
-https://github.com/Erlla/sony-a7m4-custom-firmware/blob/main/no-fastboot-install/agent/PROMPT.zh-CN.md
+**Going back to official firmware:** install a newer official Sony package with Sony's own update procedure; see
+[Restore official firmware](no-fastboot-install/README.en.md) in Erlla's guide.
 
-请帮助我操作 Sony A7M4。若我尚未说明目的，先询问本次是“安装固件”还是“仅恢复普通 USB”，然后执行对应流程。
+## Features and how to use them
 
-安装固件时，请先询问我是否需要下载最新适用的魔改固件、配套 LUT 包和音频包，等待我选择后再下载。下载后告诉我文件位置和存储卡放置方法；安装完成后按实际固件版本介绍功能用法。
+### Open gate (new): 3:2 full-sensor video
 
-安装准备时，请提示我进入相机 MENU → 设置 → USB → USB连接模式，设为“海量存储器（MSC）”，然后连接电脑，等待我确认设置和连接完成。
+**MENU > Shooting > Media > Open Gate > Mode**: **Off**, **4K 3:2** (3840x2560) or **5.7K 3:2** (5760x3840).
 
-全程用简短中文说明当前进度和我需要做什么。实际写入补丁前等待我明确同意；需要系统授权、拔插 USB 或重启时，明确说明具体操作并等待回复。
+1. Turn the Still/Movie/S&Q switch to **stills**. With it on movie, Mode shows "This function is currently disabled".
+2. Pick a mode and confirm. It applies at once, with no USB and no power cycle, and is saved in the camera.
+3. Turn the dial to movie and record. The mode stays on after a power-off or a battery pull until you set it to Off.
 
-出现问题时，请主动结合本轮日志、对应构建源码和历史问题排查，修复可验证的主机端问题并复查。确认旧任务已结束且未开始设备操作后，可保留原记录、归档失效状态并生成新的尝试；补丁已经完成时继续后续步骤。记录每次尝试的依据与结果，持续推进到完成或明确的具体阻塞。仅恢复 USB 时使用独立恢复流程。
+- Record in **XAVC HS 4K or XAVC S 4K at 24p** on NTSC cameras, or **XAVC S 4K at 25p** on PAL cameras, full frame.
+  Other formats and frame rates don't work while a mode is on.
+- Set **Proxy Recording** to Off.
+- 5.7K records at about 300 Mbps on the 100M settings. The menu still says 100M, so the card fills about three times
+  faster than shown. Use a fast card (CFexpress Type A, or SD V60/V90).
+- Files open at 3:2 in editors such as DaVinci Resolve without a remux: the MP4 headers state 3840x2560 or 5760x3840.
+  Sony's own XML inside the file still says 3840x2160.
+- 5.7K is coded with I and P pictures only, which removes the duplicate (held) frames. The camera plays 4K 3:2 files
+  back, but not 5.7K.
+- The rear screen shows the whole 3:2 picture with focus frames. There's no de-squeeze preview.
+- **Off** puts every change back to stock straight away.
+- If a mode can't be applied (another apply running, the coprocessor not ready, unexpected bytes, a read or write
+  error), the menu shows no error: Mode keeps showing what is really in place.
+
+### Custom LUTs
+
+**MENU > Exposure/Color > Color/Tone > Custom LUTs**: 16 slots for imported looks, each with eight adjustments plus
+strength.
+
+1. Download looks as camera JSON files from [M4 Color Lab](https://erlla.github.io/sony-a7m4-custom-firmware/) and put
+   them in `PRIVATE/M4ROOT/GENERAL/LUT/` on the card (each file 128 KiB at most, at most 256 files in the folder).
+2. Open Custom LUTs and press **Left** to import: choose the card and the file, then follow the on-camera steps.
+3. Select a look with the keys or by touching the number column on the left. Press **Right** for the editor:
+   Left/Right picks a control, Up/Down changes it. Confirm saves; Cancel goes back.
+
+- Imported looks stay in the camera, so the card isn't needed afterwards. The first use after power-on takes about a
+  second to load.
+- `.cube` and DCP files must be converted to the JSON format first; renaming isn't enough
+  ([format](methods/08-custom-lut/README.en.md)).
+
+### Custom aspect ratios
+
+**Aspect Ratio** (camera menu or Fn menu) adds **17:6, 65:24, 5:4, 7:6, 21:9 and 2.35:1** after the stock options.
+
+1. Choose a ratio and confirm, then compose inside the mask in the shooting view. The mask follows the camera's
+   rotation.
+2. JPEG and HEIF are cropped to the ratio. RAW keeps the full sensor area; in RAW+JPEG the JPEG is cropped.
+3. Automatic review and the in-camera album show the cropped photo, and magnified playback works on custom-ratio
+   JPEG and RAW+JPEG.
+
+- Some settings pages briefly show the plain 3:2 preview; the mask comes back in the shooting view.
+
+### FL2 / FL3 Creative Looks
+
+**MENU > Exposure/Color > Color/Tone > Creative Look** includes **FL2** and **FL3**, ported from the FX2.
+
+- New RAW files carry both looks, so Imaging Edge Edit can switch to FL2 or FL3 from the original ARW.
+- Colours closely match Imaging Edge's re-selected FL2/FL3 (mean ΔE76 about 1.0); they aren't pixel-identical to a
+  real FX2.
+
+### Third-party batteries
+
+Automatic. The battery percentage shows for third-party batteries that report it, and the "continue using a
+third-party battery" caution no longer appears. Charging and temperature protection are unchanged. **Firmware updates
+still need an original Sony battery.**
+
+### White balance tuning
+
+Automatic, in the existing AWB priority setting: **Ambience** −1, **Standard** 0, **White** 97 (the FX2's factory
+White is 88). No new menu; manual colour temperature is unchanged.
+
+### Third-party lens AF capability filter
+
+Automatic. Keeps the capabilities and speed profiles the lens reports instead of filtering them by lens ID.
+**Untested on hardware:** no faster focus is promised for any lens.
+
+### Removed from v0.1.3
+
+- **Custom shutter and focus sounds:** their menus are gone, because the Open Gate page took the Custom Shutter Sound
+  page's place. The sound code is still in the firmware, but nothing reaches it.
+
+## How open gate works
+
+The open-gate changes come from [ArcaneLantern/a7iv-open-gate-test](https://github.com/ArcaneLantern/a7iv-open-gate-test)
+(at `2f2a021`), a USB kit that writes them into camera memory for one power-on. This build does the same writes from
+inside the camera, so no USB session or cold boot is needed and the mode survives power-offs.
+
+```mermaid
+flowchart LR
+  M["Menu: Mode = 4K 3:2"] --> C["og_menu_commit"] --> S["og_select"]
+  P["shooting screen created (start-up, wake)"] --> O["og_power_on"]
+  S --> R["reconcile to the mode"]
+  O --> R
+  R --> W["check every site, undo, apply, read back"]
+  S --> F["save /setting/open_gate.dat"]
 ```
 
-**[Agent 使用入口](no-fastboot-install/agent/README.md)** · [完整操作提示词](no-fastboot-install/agent/PROMPT.zh-CN.md) · [正式运行包](https://github.com/Erlla/sony-a7m4-custom-firmware/releases/tag/A7M4-Agent-ToolKit-V1.03) · [Agent 源码](no-fastboot-install/software/README.md)
+**Where the changes go.** Nothing in Sony's image-processing files changes on disk. A native module, linked into an
+existing empty gap of `appFw.so`, writes into memory at run time:
 
-### 桌面软件模式（1.03）
+| Target | What changes | How it is written |
+| --- | --- | --- |
+| Coprocessor RAM | The full-height sensor read-out, the output size, the rear-screen 3:2 fill | `sen_dma_transfer` through a 4 KB DMA buffer, whole 64-byte lines, read back after each write |
+| Stored drive-parameter record | 26 bytes of the drive mode the kit uses (`0x8c0` on NTSC cameras, `0x880` on PAL) | The same DMA path, found through its pointer chain |
+| `av-cam.bin` tables | The encoder: memory blocks, descriptors, profiles, bit rates, no B pictures for 5.7K | A `/dev/mem` mapping, checked through `pread` of `/dev/mem` too |
+| `libmpr.so` | The MP4 writer: picture size, header sizes, edit-list start | `/proc/self/mem` (data and instructions) |
 
-1. 将适用的 `BODYDATA.DAT` 放入**卡槽 1 存储卡根目录**。
-2. 用普通 USB 数据线连接电脑，在 M4 相机工具中点击**写入补丁**。
-3. 等待工具明确提示可以开始更新，再拔下 USB，在相机“版本／软件更新”中安装。
+The kit's first step, a taller raw write buffer, is written into `DmmCfg.bin` at build time instead, so it is always
+on and the kit's cold-boot rule goes away.
 
-**[安装指南](no-fastboot-install/README.md)** · [软件说明](no-fastboot-install/TOOL-1.0.0.md) · [软件源码与构建](no-fastboot-install/software/README.md) · [原理与修改位置](no-fastboot-install/IMPLEMENTATION.md)
+**Where the bytes come from.** Every address and byte comes from the kit's design files, pinned by SHA-256 in
+[`layout.json`](native/open-gate/layout.json), plus the stored-record bytes in
+[`stored_record.json`](native/open-gate/stored_record.json). The build compiles them into a site image inside the
+module: four presets (4K and 5.7K, each for NTSC and PAL). Nothing is typed into C.
 
-固件安装包、M4 相机工具及 Fastboot 工具包请前往 [Releases](https://github.com/Erlla/sony-a7m4-custom-firmware/releases) 下载。相机工具不校验卡上的固件包，请按安装指南核对文件与操作条件。
+**When it runs.** Two hooks on the shooting screen's creation (`0x1ddab68`, `0x1e56b2c`) call the custom firmware's
+aspect-ratio code first, unchanged, then `og_power_on`, which brings memory to the saved mode. Confirming the menu calls
+`og_select`, which does the same right away and then saves the mode. Both only act with the dial on stills, as the
+kit does; with the dial on movie the next shooting screen retries.
 
-## 二、Fastboot 修改方法
+**How it stays safe.** Each apply first reads every site of the camera's NTSC/PAL family. Every site must hold either
+its stock bytes or one preset's bytes; anything else and nothing is written. Then it undoes the other preset, applies
+the chosen one in the kit's order and reads each write back. On any failure it puts every touched site back. Off puts
+every site back to stock. The camera's NTSC/PAL setting is detected from its stored records: exactly one of the two
+drive modes' records must hold the kit's bytes (on an NTSC camera, `0x880`'s record differs from the kit's PAL stock),
+and a camera that matches neither or both is left untouched.
 
-Fastboot 路线需要 **Multi 接口刷机线与 RP2040-Zero 启动桥**，普通 USB 数据线不能代替。先完成[接线](docs/wiring.md)、[环境配置](docs/setup.md)与本机备份，再按下表进入对应方法。功能修改源码与安装方式分别说明，组合使用请查看各方法的集成说明。
+**The menu.** The setting is the custom firmware's own Custom Shutter Sound page, taken over: its page, controller and
+ids already work on the camera, so nothing new is registered. The page is renamed Open Gate and listed on Shooting >
+Media, holds only the Mode setting, and that setting gets a third option and callbacks into the module. Eight existing
+relocations change in place, so `.rela.dyn` keeps its size. The four texts are the page's own, rewritten in place in
+all 68 string banks; no Sony string changes. An earlier version added a new item of its own; on the camera it had no
+title and couldn't be selected (its "selectable" answers were inverted), which is why this one reuses a working page.
 
-| 方法 | 功能简介 | 文档 |
-|---|---|---|
-| SD 更新救砖 | 从 Fastboot 触发机内 SD 卡恢复更新，保留同机设置。 | [使用方法](methods/00-sd-recovery/README.md) |
-| 自定义更新签名 | 替换更新公钥、修改公钥验证，支持自签固件包。 | [使用方法](methods/01-custom-signing/README.md) |
-| 固件版本显示 | 自行设置相机报告的固件版本号。 | [使用方法](methods/02-firmware-version/README.md) |
-| FL2 / FL3 移植 | 移植 FX2 的 FL2、FL3 创意外观及色彩配置，RAW 内置两组备选参数供 Edit 直接重选。 | [使用方法](methods/03-fl2-fl3/README.md) |
-| 副厂电池 | 显示电量、取消副厂提示，保留充电与温度保护；更新仍须用原厂电池。 | [使用方法](methods/04-third-party-battery/README.md) |
-| 镜头 AF 能力过滤 | 保留镜头上报的兼容能力与速度参数；不承诺对焦提速。 | [使用方法](methods/05-third-party-lens-af/README.md) |
-| 自定义声音 | 从 SD 卡导入 WAV，机械／电子快门均可播放；对焦声与快门声相互抢占，最后触发优先，音频和音量分别设置；开机后可能需等待数秒生效。 | [使用方法](methods/06-custom-sounds/README.md) |
-| 自定义纵横比 | 新增 17:6、65:24、5:4、7:6、21:9、2.35:1，菜单图标与比例对应；JPEG / HEIF 裁切，RAW 保留原始幅面，普通自动检视保持照片比例。 | [使用方法](methods/07-custom-aspect-ratios/README.md) |
-| 自定义 LUT | 从 SD 卡单独导入转换后的 JSON LUT；16 个槽位可随时替换，支持触摸编号栏选择预览，每个滤镜支持 8 项微调与 1 项强度，开机初次使用约 1 秒载入。 | [使用方法](methods/08-custom-lut/README.md) |
-| Shell / SSH | 网络 Telnet、USB Shell、SSH / SFTP 与 Multi UART root 终端的开启及集成方法。 | [使用方法](methods/09-shell-access/README.md) |
-| 白平衡优化 | 氛围优先 −1、标准 0、白色优先 97，沿用原有 AWB 优先设置。 | [使用方法](methods/10-awb-priority/README.md) |
+Details: [the open-gate method](methods/11-open-gate/README.en.md) · [the module, records, hooks and relocations](native/open-gate/README.md).
 
-### 文档导航
+**Later work:** 1080p open gate (1920x1280) looks possible at 24/25/30p but isn't built; see the
+[research notes](methods/11-open-gate/HD-RESEARCH.md) for what it would take and the camera check that decides it.
 
-| 要做什么 | 入口 |
-|---|---|
-| 准备刷机线与主机环境 | [接线说明](docs/wiring.md) · [环境与外部资源](docs/setup.md) |
-| 备份、恢复与日常维护 | [进阶维护入口](advanced/) · [SD 更新救砖](methods/00-sd-recovery/README.md) |
-| 组合功能与迁移安装 | [自定义 LUT 集成](methods/08-custom-lut/INTEGRATION.md) · [FL2 / FL3 的 SD 迁移](methods/03-fl2-fl3/sd-colour-preservation.md) |
-| 查看界面与示例文件 | [LUT 界面](methods/08-custom-lut/README.md#实机界面) · [声音与示例音频](examples/custom-sounds/README.md) · [纵横比说明](methods/07-custom-aspect-ratios/README.md) |
-| 训练与评估自定义滤镜 | [AI Agent 训练方法](docs/custom-lut-training/AGENT_TRAINING.md) · [当前15款滤镜误差报告](docs/custom-lut-training/README.md) |
-| 查阅技术资料 | [色彩对比报告](docs/fl23-colour-comparison-20261018/README.md) · [验证说明](docs/validation.md) · [参考清单](REFERENCES.md) |
-| 参与开发 | [贡献指南](CONTRIBUTING.md) · [第三方说明](THIRD_PARTY_NOTICES.md) |
+## Build it yourself
 
-### Fastboot 工具入口
+The build is reproducible: the same inputs give the same `BODYDATA.DAT`, byte for byte.
 
-相机端启动文件、RP2040 UF2、对应源码资料及进入／退出／维护／一键救砖脚本见 **[Fastboot 维护工具](fastboot/README.md)**。运行 `python tools/build_fastboot_release.py --output output/A7M4-Fastboot.zip` 可生成独立上传 Release 的压缩包。
+You need:
+- Erlla's v0.1.3 [`BODYDATA.DAT`](https://github.com/Erlla/sony-a7m4-custom-firmware/releases/download/A7M4-ToolKit-v0.1.3/BODYDATA.DAT),
+  SHA-256 `cfb7929594f3f0a770b9fbecaff1269cd945bc0932e3ddbabf73050f8eda475f`;
+- the kit's `windows/tools/modding/designs` folder from
+  [ArcaneLantern/a7iv-open-gate-test](https://github.com/ArcaneLantern/a7iv-open-gate-test) at `2f2a021`;
+- [Zig 0.15.2](https://ziglang.org/download/) (the official build; the binary's hash is pinned);
+- Python 3.11 or newer.
 
-**Windows x64 便携版自带 Python、依赖库、Fastboot、SquashFS 工具和 WinUSB 安装器，完整解压后直接运行 BAT。** 新电脑首次安装驱动需管理员授权，并按[驱动说明](fastboot/README.md#便携版)载入 Fastboot 预设。便携版构建器为 `tools/build_fastboot_portable.py`；运行时和工具只进入 Release ZIP。
-
-支持完整备份、版本查看与设置、自签更新器构建、同机备份恢复和恢复官方验签。环境要求：**Windows 10 / 11、Python 3.11+**。
-
-克隆仓库后，运行 `setup.bat` 安装依赖，再运行 `advanced/进阶维护菜单.bat`。外部工具与驱动按[环境说明](docs/setup.md)准备。
-
-<details>
-<summary>命令行安装与启动</summary>
-
-```powershell
-py -3 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e .
-# 纯模拟，不操作相机
-.\.venv\Scripts\python.exe -m a7m4 --demo maintain
-# 检查本地资源
-.\.venv\Scripts\python.exe -m a7m4 doctor
-# 实机维护：先进入 Fastboot 并完整备份
-.\.venv\Scripts\python.exe -m a7m4 maintain
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -e ".[firmware,test]"
+.venv/bin/python -m a7m4.open_gate build --base BODYDATA-custom-v0.1.3.DAT \
+    --designs <kit>/windows/tools/modding/designs --zig <zig-0.15.2>/zig \
+    --private-key keys/published/A7M4_updater_private.pem \
+    --public-key keys/published/A7M4_updater_public.pem --output out/open-gate
 ```
 
-已进入 Fastboot 时可用 `maintain --already-fastboot`，仍需完成备份与写入计划确认。
+The output folder gets `BODYDATA.DAT` and `verification.json`: every input and output hash, the changed files and
+byte ranges, the module's symbols, the signature check and the package audit. Any input that doesn't match its pinned
+hash stops the build.
 
-</details>
+Offline checks: `python -m pytest tests/test_open_gate.py`. They test the site image against the designs and v0.1.3's
+files, run the module's C code on the host against fake memory, and check the composed `appFw.so` and all 68 string
+banks. Set `OG_DESIGNS` and `OG_V013_DEV` (an unpacked v0.1.3 `0700_part_image/dev` tree) if they aren't at the
+workspace defaults.
 
-<details>
-<summary>备份范围与恢复条件</summary>
+## What's in this repo
 
-- 保存本机全部 eMMC 分区、boot0 / boot1、分区表和 SHA-256，另存离线副本；涉及 FL2 / FL3 时另行备份物理 CP NOR。
-- 常规维护要求本次连接的完整 eMMC 分区备份，写后完整读回校验。范围为 payload 提供的分区，不包括独立 CP NOR、其他 MCU 或全部硬件状态。
-- 救砖入口的六分区备份、免 Fastboot 工具的 p1 备份均不等于完整 eMMC / NOR 备份。SD 救砖要求已进入 Fastboot 且更新器匹配支持的布局。
-- 备份不保证所有故障均可恢复。固定地址补丁只能用于对应基线，不能按相近版本号套用。
+| Path | What |
+| --- | --- |
+| [`methods/11-open-gate/`](methods/11-open-gate/README.en.md) | The open-gate method: modes, menu, build, limits; [research notes on 1080p open gate](methods/11-open-gate/HD-RESEARCH.md) for later work |
+| [`native/open-gate/`](native/open-gate/README.md) | The module's C and assembly, `layout.json` (every pinned input, address and hook) and `stored_record.json` |
+| `a7m4/open_gate.py`, `a7m4/open_gate_sites.py` | The build: site image, module link, `appFw.so` and string bank edits, packaging |
+| `tests/test_open_gate.py`, `tests/native/` | The offline checks |
+| [`methods/00` to `10`](README.en.md#2-fastboot-modification-methods) | Erlla's methods: SD recovery, signing, version, FL2/FL3, batteries, lens AF, sounds, aspect ratios, LUTs, shell, white balance |
+| [`no-fastboot-install/`](no-fastboot-install/README.en.md) | Erlla's install route and the M4 Camera Tool's source |
+| [`keys/published/`](keys/published/README.md) | The published signing key pair |
 
-</details>
+## Disclaimer and limitation of liability
 
-## 三、LUT 训练方法
+**Read this before downloading, building or installing anything from this repository or its releases.**
 
-支持将不同来源的色彩 LUT 或全局调色配方拟合为 A7M4 自定义滤镜。在调色软件中打开提供的索尼大色卡 ARW，应用目标效果，导出原布局的 16 位 sRGB TIFF，再交给 AI Agent 使用 M4 模型训练并输出相机可导入的 JSON。训练在电脑中迭代，复现程度由拟合误差与最终拍摄效果评估。
+1. **No warranty.** This firmware, its source, its build tools, its packages and its documentation (together, "the
+   software") are provided **"as is" and "as available", without warranty of any kind**, express or implied,
+   including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement,
+   accuracy, reliability or that it will work on your camera. This repeats and does not limit sections 15 and 16 of
+   the [GPL-3.0](LICENSE).
+2. **No liability.** To the maximum extent permitted by applicable law, **the authors, contributors, maintainers and
+   anyone who conveys the software are not liable for any damage, loss or cost of any kind**: a bricked, damaged or
+   malfunctioning camera, lens, battery, card or computer; lost or corrupted photos, videos, settings or calibration;
+   repair, replacement or recovery costs; voided warranty or refused service; missed shoots, lost income, business
+   interruption, or any direct, indirect, incidental, special, consequential or punitive damages, however caused and
+   on any theory of liability, even if advised of the possibility of such damage.
+3. **Your risk, your responsibility.** You use the software entirely at your own risk and are solely responsible for
+   your decision to use it, for following the instructions correctly, for backing up your camera and data, and for any
+   consequence. If it fails, you bear the whole cost of any servicing, repair or correction.
+4. **Experimental and barely tested.** This build has been run on one camera, set to NTSC and PAL. It changes how the
+   camera's processors, encoder and file writer work, outside what Sony designed and tested. Behaviour may be wrong or
+   unsafe, including overheating, freezes, corrupted or unplayable recordings and failed boots. Don't rely on it for
+   paid, important or unrepeatable work.
+5. **Not Sony.** This project is independent. It is not affiliated with, authorized, sponsored or endorsed by Sony
+   Group Corporation or any of its subsidiaries. Sony, Alpha, α, XAVC, XAVC S, XAVC HS and other names are trademarks
+   of their owners and are used only to describe compatibility. Sony doesn't support this firmware: don't contact Sony
+   about problems it causes. Installing it is likely to void your warranty.
+6. **Legality is up to you.** Only modify equipment you lawfully own or are explicitly allowed to modify. You are
+   responsible for complying with the laws, regulations and agreements that apply to you, including any about
+   modifying firmware, warranties, radio or recording equipment.
+7. **No support, no obligation.** There is no obligation to provide support, updates, fixes or recovery help, and no
+   paid service is offered or authorized. Anyone charging for flashing or support does so on their own account.
+8. **Third-party work.** The software builds on third-party projects (listed below) under their own licenses. Their
+   authors are not responsible for this build, and this project is not responsible for theirs.
+9. **The published signing key gives no assurance.** Packages are signed with a key whose private half is public.
+   A valid signature proves nothing about who made a package or whether it is safe. Only install a package whose
+   SHA-256 you have checked, or one you built and reviewed yourself.
+10. **Acceptance.** By downloading, building, installing or using the software, you confirm that you have read,
+    understood and accepted this disclaimer. If you don't accept it, don't use the software.
 
-**[训练入口、代码与素材](training/README.md)** · [AI Agent 执行指南](docs/custom-lut-training/AGENT_TRAINING.md) · [M4 模型说明](training/MODEL.md) · [大色卡与自定义目标](training/DATASETS.md)
+If any part of this disclaimer is held unenforceable, the rest still applies, and the limitation applies to the
+fullest extent the law allows.
 
-模型与大色卡作为独立训练素材附件提供；Sony 参考文件由使用者自行取得。模型复现误差、滤镜匹配误差及实机验收分别记录。[已有训练评估](docs/custom-lut-training/README.md)保留其原始数据范围与时间，不作为新用户的精度保证。
+## Credits and licenses
 
-## 声明与许可
-
-本项目为社区研究，与索尼公司无隶属关系。主要补丁基于 **A7M4 官方 6.02**，FL2 / FL3 色彩数据供体为 **FX2 1.01**；具体适用文件见各方法说明。
-
-维护者明确授权发布自己此前使用的 [RSA 密钥对](keys/published/README.md)。**私钥已公开，任何人都能用它签名；使用此公钥的更新器不再能通过签名辨认发布者。** 请自行审核包内容；如需独立信任身份，生成自己的密钥并离线保存私钥。
-
-本仓库公开原创主机源码、补丁配方、说明、指定公开密钥，以及用户授权公开的[三个 WAV 参考音频](examples/custom-sounds/README.md)。索尼固件、供体曲线/矩阵、个人校准、机身备份和外部驱动应由使用者自行取得。第三方内容依其原许可，见 [第三方说明](THIRD_PARTY_NOTICES.md)。启动文件及对应历史源码单独列明[来源与许可范围](fastboot/SOURCES.md)。
-
-本项目原创内容自本次许可变更起采用 **GNU General Public License v3.0 only（GPL-3.0-only）**。允许商业和非商业使用、修改及分发。分发适用程序或其修改版本时，应按 GPLv3 保留版权及许可声明、标明修改，并满足对应源代码的提供要求。具体权利、义务及免责条款以英文协议原文为准。[完整许可](LICENSE)
-
-截至提交 `468043977f9ca5fd0bf03b2002f6e40f35cbf667` 已按 MIT 发布的代码、文档及贡献继续享有原许可授予的权利，包括商业使用权。后续新增原创内容及修改按 GPLv3 授权。[历史 MIT 许可](LICENSE-MIT-LEGACY)
-
-
-## 致谢
-
-感谢以下项目公开研究成果，为本项目提供参考：
-
-| 项目 | 参考内容 |
-|---|---|
-| [YuuLuo/a7c2-camera-tools](https://github.com/YuuLuo/a7c2-camera-tools) | 免 Fastboot 安装方案的研究与实现思路。 |
-| [DavidBuchanan314/ILCE-7M4-RE](https://github.com/DavidBuchanan314/ILCE-7M4-RE) | 串行启动、RP2040 桥、Fastboot payload 与 eMMC 访问。 |
-| [QAQLeonard/a7c2-fl23-research](https://github.com/QAQLeonard/a7c2-fl23-research) | FL2 / FL3 参数与安装研究。 |
-| [Hearts-Ace/sony-a7r5-custom-firmware](https://github.com/Hearts-Ace/sony-a7r5-custom-firmware) | 原生色彩参数、网格生命周期、LUT 拟合思路与合成大色卡参考；特别感谢项目作者 **Hearts-Ace 对训练方法的大力支持**。 |
-| [751K/sony-look-bridge](https://github.com/751K/sony-look-bridge) | Sony Edit 的 RAW 显影算子与创意外观矩阵/Gamma 实现，为 M4 电脑模型的原生处理前段提供运算基础。 |
-| [DavidBuchanan314/fwtool.py](https://github.com/DavidBuchanan314/fwtool.py/tree/a7iv) 与 [ma1co/fwtool.py](https://github.com/ma1co/fwtool.py) | 固件容器格式与解包方法。 |
-| [ma1co/Sony-PMCA-RE](https://github.com/ma1co/Sony-PMCA-RE) | 索尼相机协议与固件研究。 |
-| [q19032/Sony-firmware-unpacker](https://github.com/q19032/Sony-firmware-unpacker) | 固件解密与密钥推导研究。 |
-| [DavidBuchanan314/Sony-ILCE-7M4-Linux](https://github.com/DavidBuchanan314/Sony-ILCE-7M4-Linux) | 平台 Linux 参考源码。 |
-
-同时感谢所使用的开源工具与依赖。完整归属、用途及许可见[参考清单](REFERENCES.md)与[第三方说明](THIRD_PARTY_NOTICES.md)。
-
-## 参与贡献
-
-欢迎通过 Issue 或 Pull Request 提交问题与改进。新增基线请附输入哈希、地址映射与修改依据；请勿提交个人私钥、机身校准、备份或完整固件。详见[贡献指南](CONTRIBUTING.md)。
-
-## 开发者交流 / Community
-
-欢迎对索尼相机逆向感兴趣的开发者加入 Discord 频道交流排查经验。
-
-**注：本群仅面向开发者技术讨论，不解决刷机时出现的问题、不提供一键刷机包或代刷服务**
-
-[![加入 Discord 开发者交流群](https://img.shields.io/badge/Discord-Join%20Dev%20Chat-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/BjNct7Czt)
+- Custom firmware v0.1.3, the install tool, the build tooling and the aspect-ratio hooks this module chains onto:
+  [Erlla/sony-a7m4-custom-firmware](https://github.com/Erlla/sony-a7m4-custom-firmware), GPL-3.0. Erlla's README lists
+  the research it builds on.
+- Open-gate designs, methods and constants:
+  [ArcaneLantern/a7iv-open-gate-test](https://github.com/ArcaneLantern/a7iv-open-gate-test), GPL-3.0.
+- This repository is GPL-3.0-only ([license](LICENSE)); material published under MIT before Erlla's license change
+  keeps that grant ([MIT](LICENSE-MIT-LEGACY)).
+- Sony firmware isn't included; get it from Sony or the releases above.
