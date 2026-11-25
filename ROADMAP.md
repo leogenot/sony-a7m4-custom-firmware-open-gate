@@ -39,6 +39,36 @@ the A7 IV already has, as Erlla did for Custom LUTs.
 | Big6-style main screen, waveform, false colour | — | Build | New screens drawn with Sony's internal drawing system. Monitor & Control (phone app) already gives the A7 IV waveform, vectorscope and false colour. | Large; after the cheaper items |
 | Binned full-frame 60p below 4K (e.g. 3.5K, 3504 wide) | — | Build | A 2x2-binned readout exists as a stills mode (`0x5002`); measurements say FF HD 120p reads the full height in 6.5 ms. Erlla reports working on "3.5K60 in 2x2 binning". | Watch Erlla's work |
 
+## Planned: an all-in-one tool
+
+One app to choose features, build the package, unlock the camera, and read its logs. Most pieces exist as separate
+scripts; the blocker is making features combinable.
+
+| Part | What exists | Work |
+| --- | --- | --- |
+| Choose features, build `BODYDATA.DAT` | `python -m a7m4.open_gate build`, reproducible from public inputs (Erlla's v0.1.3 package, the kit's designs, Zig, the published key) | Download and hash-check the inputs, build on the user's computer; no prebuilt combinations |
+| The 10-minute unlock | Erlla's M4 Camera Tool ([`no-fastboot-install/`](no-fastboot-install/README.en.md)) and the Mac port ZM4 | Run that step from the tool over USB (Windows needs the USB driver Erlla's tool installs; a Mac needs the admin password) |
+| Update the camera | Copy `BODYDATA.DAT` to the card, run Software Update on the camera | Copy the file and guide the camera steps |
+| Logs | [`tools/og_read_diag.py`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha-movie/tools/og_read_diag.py) on the alpha test branches (a debug script), over the kit's read-only USB session | Bring it to `main`, then a button around it |
+
+**Prerequisites** (before the tool):
+
+- **Code space.** All our code shares one 48 KB block in `appFw.so`, nearly full (open gate alone about 45 KB; the
+  movie-mode build has 4 bytes free). Combining features needs a second free region, like the one Erlla uses for the
+  LUT screens.
+- **Feature switches.** Features share hook sites (DCI and the File Format formats both hook the option lookup at
+  `0x1c18004`), so the module needs build-time switches and one combined handler per site.
+
+**Safety:** every combination is a firmware nobody has run. Offer camera-tested features by default, put untested
+ones behind an "experimental" switch, and block combinations advised against (DCI with open gate on: open gate's sensor changes are made for 4K and 5.7K).
+
+**Order:**
+
+1. Finish the camera tests of the alpha builds.
+2. Merge the passing features into one build with feature switches, and find the extra code space.
+3. A command-line tool: `a7m4 build --features …`, `a7m4 unlock`, `a7m4 logs`, reusing the existing Python.
+4. An app with checkboxes and buttons on top of it, packaged for Mac and Windows.
+
 ## Not possible on this body
 
 | Feature | Why |
