@@ -32,7 +32,7 @@
   "sha256": "c65cd34917923f575448cc0603dd7c2326da0af0e5c323043d090662dcdf351c"
  },
  "sources": {
-  "og.c": "d3487920508904dfd4295200dcb52fdb3781408e96579bbbfe06ee32e4cfc262",
+  "og.c": "1a53e864d99aaaba18eff0938fadc77aeefeb427c0d8800b4cd3757ec5fbe231",
   "og_reconcile.c": "56efb86ea61ec2c5bbe02604e8beefd9bb7e8123659da8eb9f9d85d24e3c5322",
   "og_mem.c": "aea4f61135959ae1defdb1ff01c18aba16369dabd10857b52a46cff6ff6bcc25",
   "og_util.c": "caf8fdf9e3f29420f44570a22cc0f7167c8a65c01124e529e246615d485e2d47",
@@ -43,11 +43,15 @@
   "og_internal.h": "cd6327a82a0479c5543fae75a3d27af9df80ffa6911e7ef3826ed1e49004ef70",
   "og_image.h": "feacf8160b1b28d0def68d423ad2a05a148f4c0ada83366a12a77d9bcd483b91",
   "og_sys.h": "d9376106c89f29fea29f2d374ef87b5dc30692f10920b5c8e18d7471b9d6db8a",
-  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6"
+  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
+  "og_diag.c": "617e15cac4ccdd96106182bc30e9258b37c8de8d934b647dd1f3036f36a5f8b6",
+  "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
+  "og_probe.c": "9be65500e486c61e487e2af5fa734766d65945175a5a55209b5f68eb9ee05fe3",
+  "og_probe.h": "5b352cfbee4287cebcf5c054b6e9e9fbc720b7f55d723fce0e44e80d6650cc44"
  },
  "module": {
-  "text_bytes": 46444,
-  "text_sha256": "d991841ac0634ce27d6082743ab052fcfff111df05bdd036db058f333040fd9b",
+  "text_bytes": 47972,
+  "text_sha256": "20c5efd96e2ce61cc872a47093b8f93ee025d2ba5618cdb0cea67faa80b852c8",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {

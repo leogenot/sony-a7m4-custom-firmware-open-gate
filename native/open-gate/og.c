@@ -8,6 +8,7 @@
 #include "og_internal.h"
 #include "og_sys.h"
 #include "og_config.h"
+#include "og_probe.h"   /* [PROBE-hd] */
 
 #ifndef OG_SETTING_DIR
 #define OG_SETTING_DIR "/setting"
@@ -80,9 +81,12 @@ static og_status reconcile(og_mode mode)
 
 void og_power_on(void)
 {
-    if (in_movie() || __atomic_exchange_n(&busy, 1, __ATOMIC_ACQUIRE)) return;
-    og_mode mode = load_once();
-    if (mode != OG_OFF || __atomic_load_n(&applied, __ATOMIC_RELAXED)) (void)reconcile(mode);
+    if (__atomic_exchange_n(&busy, 1, __ATOMIC_ACQUIRE)) return;
+    og_probe_state();   /* [PROBE-hd] read-only, on stills and movie */
+    if (!in_movie()) {
+        og_mode mode = load_once();
+        if (mode != OG_OFF || __atomic_load_n(&applied, __ATOMIC_RELAXED)) (void)reconcile(mode);
+    }
     __atomic_store_n(&busy, 0, __ATOMIC_RELEASE);
 }
 

@@ -280,7 +280,7 @@ def host(image, files, tmp_path_factory):
     subprocess.run([clang, "-std=c11", "-D_DEFAULT_SOURCE", "-O1", "-g", "-Wall", "-Wextra", "-Werror", "-fno-strict-aliasing",
                     "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-DOG_HOST",
                     f"-DOG_SETTING_DIR=\"{tmp / 'setting'}\"", "-I", str(_NATIVE), "-I", str(tmp),
-                    str(_ROOT / "tests/native/og_host.c"), str(_NATIVE / "og_reconcile.c"), str(_NATIVE / "og.c"),
+                    str(_ROOT / "tests/native/og_host.c"), str(_NATIVE / "og_reconcile.c"), str(_NATIVE / "og.c"), str(_NATIVE / "og_probe.c"),
                     str(tmp / "og_sites_host.c"), "-o", str(binary)], check=True)
     return binary
 
@@ -382,7 +382,7 @@ def test_not_ready_writes_nothing(camera):
 def test_select_persists_and_power_on_restores(host, image, files, setting):
     first = Camera(host, files, Family.NTSC, image)
     assert first.send("selected") == ["mode", "0"]
-    assert first.send("power_on") == ["reads", "0", "writes", "0"]   # Off and nothing applied: no memory access
+    assert first.send("power_on") == ["reads", "3", "writes", "0"]   # [PROBE-hd] Off: only the 3 state reads, no writes
     assert first.send("dial 3") == ["ok"]
     assert first.status("select 1")[0] == WRONG_DIAL
     assert first.send("dial 0") == ["ok"]
