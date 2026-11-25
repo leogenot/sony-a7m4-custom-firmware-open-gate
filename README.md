@@ -18,6 +18,12 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 > Read the full [disclaimer and limitation of liability](#disclaimer-and-limitation-of-liability) before downloading.
 > If you don't accept it, don't use anything here.
 
+> [!WARNING]
+> **This is the `alpha-hd-probe` branch: a read-only test build, not for regular use.** It is Beta 0.1 plus a log of
+> which sensor readout each movie format uses, to plan 1080p open gate. It writes nothing extra to the camera's
+> memory. What it measures and why: [1080p research](methods/11-open-gate/HD-RESEARCH.md). For normal use, take beta
+> from `main`.
+
 [Features](#features) · [Download](#download) · [Install](#install) · [Using the features](#using-the-features) ·
 [Limitations](#limitations) · [How open gate works](#how-open-gate-works) · [Build it yourself](#build-it-yourself) ·
 [Disclaimer](#disclaimer-and-limitation-of-liability)

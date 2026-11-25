@@ -69,3 +69,42 @@ The kit warns that while open gate is applied, switching to a format that isn't 
 stop the camera responding; it then needs a cold boot". This build keeps the mode across power-offs, so the docs
 should say: set Mode to Off before recording HD, Super 35 or other frame rates. (Off works from stills, so it is
 recoverable.)
+
+## Probe build (2026-11-25): `alpha-hd-probe-0.1`
+
+The kit's levels 8 and 15 aren't in its public repo, and its runner only accepts a camera showing stock 6.02. So
+the probe is a firmware instead: Beta 0.1 plus a read-only log of the coprocessor working state the kit's level 8
+copies (its `ct6_level1_run.py`, lines 836–849), at every shooting-screen start, on stills and movie, whenever it
+changes:
+
+| Trace line | Address | Values (each `WWWWHHHH` in hex) |
+| --- | --- | --- |
+| `hd.window` | `0x011d1194` | readout, crop, front end, crop start |
+| `hd.mode` | `0x011d11ac` | readout mode id, size source, NTSC/PAL family |
+| `hd.scaler` | `0x0145091c` | second scaler input, window start, window size, the four fractions |
+
+The addresses are stock 6.02's; v0.1.3's coprocessor program differs (`cebf825e…` against `7b9b137d…`). The kit's
+expected state for 4K 3:2 (`ogsq_v3`: readout 7032x4688, crop 7008x4672, front end 4336x2438, size source 3840x2160,
+mode `0x8c0` / `0x880`) is the self-check: if the log shows it with 4K 3:2 on, the other lines can be believed.
+
+### Camera steps
+
+For each format: set it in movie mode, close the menu, open and close the menu once more (the state is read when the
+shooting screen comes back, so the second time shows the settled state), record 3 s.
+
+1. Self-check: open gate **4K 3:2**, XAVC HS 4K 24p (PAL: XAVC S 4K 25p).
+2. Open gate **Off**, XAVC S 4K 24p (PAL: 25p): stock 4K.
+3. Open gate **Off**, XAVC S HD 24p (PAL: 25p), then 30p.
+4. Open gate **Off**, XAVC S HD 60p (PAL: 50p).
+
+Then read the log back (`og_read_diag.py`).
+
+### What the answer means
+
+| `hd.mode` for HD | Route |
+| --- | --- |
+| `0x8c0` / `0x880` (as 4K) | A: HD scales the 4K readout. 1080p 3:2 needs only new HD size, encoder and MP4 changes |
+| `0xae0` / `0xb20` / `0xbc0` (binned) | B: HD reads a binned readout; 3:2 needs a full-height binned readout (new sensor work) |
+
+**60p:** the 7K full readout takes too long per frame for 60p (that's why 4K 60p is Super 35), so HD 60p is
+expected to be on a binned mode (route B) even if HD 24–30p is route A. The probe shows it either way.
