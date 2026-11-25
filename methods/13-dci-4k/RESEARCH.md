@@ -3,8 +3,9 @@
 **Goal:** XAVC S-I DCI 4K in **MENU > Shooting > Image Quality > File Format**, with Rec Frame Rate 24p / 30p
 (NTSC) and 25p (PAL).
 
-**Status:** test build `alpha-dci-0.1`, not yet run on a camera. Every recording layer is present in the A7 IV's
-v0.1.3 files; what hides it is the menu's lookups, built at run time.
+**Status:** `alpha-dci-0.1` ran on a camera (2026-11-25): **DCI was not in File Format.** The cause is a
+per-product flag in the option rows (below). Test build `alpha-dci-0.2` sets it, not yet run on a camera. Every
+recording layer is present in the A7 IV's v0.1.3 files.
 
 ## Present in the firmware
 
@@ -25,7 +26,25 @@ The generated availability rules allow DCI for system architecture IPSX, which t
 
 ## What hides it
 
-Not the rows and not the leaf: the leaf lists all 13 rows. Option ids go through `0x1c18004`, which Erlla's custom
+**The rows' per-product flag** (found after the `alpha-dci-0.1` camera run). The leaf lists all 13 rows, but the
+row-list builder `0x1c0e52c` (vtable slot `0x2e0`) keeps a row only if the per-row check `0x1c0f12c` (slot `0x1a8`)
+passes, and that check runs three tests:
+
+1. `0x1c20420(row)`: the halfword at row `+0x44 + 2 x index` must be 1. The index comes from `0x1c16460` →
+   `0x1c0bff4`, which maps the product's `menu_item` (`0x183ee0c`) minus 1 through a 26-byte table and falls back to
+   19. The A7 IV is `LS`, feature index 26, `menu_item` 0, so **index 19, `+0x6a`**. At index 19, File Format's flags
+   give exactly the A7 IV's list: XAVC HS 4K, XAVC S 4K, XAVC S HD, XAVC S-I 4K, XAVC S-I HD (and "-", hidden by
+   test 2). **DCI (141) is 0, and so are all ten DCI Rec Frame Rate rows (200–209).**
+2. The function the table at `0x58f9db0` holds for the row's `+0x30` (entry 0 = always). DCI's is `0x15` →
+   `0x1c35f0c`: setting `0x2530` (getter `0x2922784`) must be nonzero. The DCI frame rates have their own entries
+   (`0x50`–`0x58`), the usual NTSC/PAL rules.
+3. A virtual check per alias (slot `0x700`).
+
+The option check `0x1c08bc0` (slot `0x210`; it takes an option alias, not an item id) runs test 1 too. Running
+`0x1c20420` in an emulator on the v0.1.3 rows, with the A7 IV's feature index, gives the same visible set as the
+camera, and DCI hidden.
+
+**The lookups** (what `alpha-dci-0.1` changed) come after that, and weren't enough on their own. Option ids go through `0x1c18004`, which Erlla's custom
 firmware already hooks (`B 0x8fa1000`: its own ids 5607–5630 return themselves). The stock path calls `0x1c11044`, a
 lookup in a run-time map (a red-black tree, key at `+0x20`, candidate at `+0x24`) that, for each candidate of the
 id, calls a virtual check (`vtable +0x210`) and returns the first that passes, else `0x15d8`. Which candidates id 141
@@ -51,7 +70,9 @@ its own ids and passing everything else on:
 | `0x1c1116c(…, item)` | maps an item id through a start-up table (a leaf, writes x0–x4 only) | the id itself |
 | `0x1c18004(option)` | resolves an option id (`0x1c11044`: per-candidate virtual check, else `0x15d8`) | the id itself, for 5607–5630 |
 
-## The test build: `alpha-dci-0.1`
+## The test builds
+
+### `alpha-dci-0.1` (camera: DCI not shown)
 
 Beta 0.1 plus three hooks that go before Erlla's chains at those sites and answer for DCI the same way: item 42 is
 supported and maps to itself; options 141 (File Format DCI) and 202, 203, 204, 206, 207 (DCI 30p, 25p, 24p and the
@@ -63,7 +84,19 @@ The step log (`/setting/og_diag.txt`) records once per id what Sony's chain answ
 items 34 and 39–42, options 139–141 and 182–209. If DCI doesn't appear, it shows what a visible option (139, S-I 4K;
 182–190, its frame rates) resolves to, which is what the next build would return for DCI.
 
-### Camera test
+### `alpha-dci-0.2`
+
+`alpha-dci-0.1` plus a row-edit step in the build (`a7m4/open_gate.py` `_edit_rows`, `layout.json` `row_edits`):
+
+- the A7 IV flag (`+0x6a`) set to 1 for File Format's DCI row (141) and the DCI 30p, 25p, 24p, 29.97p and 23.98p
+  rows (202, 203, 204, 206, 207); 60p, 50p, 59.94p, 24.00p stay hidden;
+- the DCI row's `+0x30` set from `0x15` to 0 (always available), so setting `0x2530` doesn't hide it. Its real value
+  is logged: `dci.option 141 <Sony's answer> 141 <setting 0x2530>`. If it reads 0 and DCI then fails to record, that
+  setting is what Sony checks for.
+
+The emulator run on the composed `appFw.so` shows 141 and the five frame rates visible, every other row unchanged.
+Not covered offline: whether the Rec Frame Rate item (42) itself shows once its rows do.
+### Camera test (`alpha-dci-0.2`)
 
 1. In movie mode, open **MENU > Shooting > Image Quality > File Format**: is **XAVC S-I DCI 4K** listed?
 2. Choose it. In **Movie Settings > Rec Frame Rate**: 24p and 30p on NTSC, 25p on PAL?
