@@ -57,3 +57,64 @@ uint32_t og_dci_resolve_option(uint32_t option)
         og_diag("dci.option", option, stock, answer, condition());   /* [DEBUG-og2] */
     return answer;
 }
+
+/* [PROBE-dci] Camera run of alpha-dci-0.3: DCI listed in File Format, its row and item flags on, but greyed out.
+ * Sony's menu object answers per-option questions through its vtable (base 0x58f7a68, a second copy at 0x58f8618;
+ * layout.json "vtable_hooks" points their entries here). For the DCI row each wrapper answers yes; for every other
+ * option it is Sony's own function. The first time the row builder asks about S-I 4K (139, selectable) and DCI (141),
+ * og_dci_checks logs what Sony's own functions answer for each, so the log shows which one says no for DCI.
+ * Slots 0x1f8 and 0x200 look the id up in another table (141 is Camera Set Memory 1 there): probed, not overridden. */
+typedef uint32_t check(void *object, uint32_t alias);
+extern check og_dci_previous_shown HIDDEN, og_dci_previous_slot_1b0 HIDDEN, og_dci_previous_slot_1f0 HIDDEN,
+    og_dci_previous_slot_1f8 HIDDEN, og_dci_previous_slot_200 HIDDEN, og_dci_previous_slot_210 HIDDEN,
+    og_dci_previous_slot_6f8 HIDDEN, og_dci_previous_slot_700 HIDDEN;
+
+static check *const probed[] = {og_dci_previous_shown,    og_dci_previous_slot_1b0, og_dci_previous_slot_1f0,
+                                og_dci_previous_slot_1f8, og_dci_previous_slot_200, og_dci_previous_slot_210,
+                                og_dci_previous_slot_6f8, og_dci_previous_slot_700};
+static volatile uint32_t probing;   /* nonzero while og_dci_checks runs: the wrappers pass Sony's answer through */
+static uint32_t probed_aliases;    /* bit 0: 139 logged; bit 1: 141 logged */
+
+static uint32_t forced(uint32_t alias)
+{
+    return alias == OG_DCI_FORMAT_OPTION && !probing;
+}
+
+/* Sony's checks return a C++ bool: only the low byte of w0 is defined. */
+static uint32_t yes(uint32_t answer)
+{
+    return (answer & 0xff) != 0;
+}
+
+/* Bit i = probed[i]'s answer (0x1a8, 0x1b0, 0x1f0, 0x1f8, 0x200, 0x210, 0x6f8, 0x700). */
+static void og_dci_checks(void *object, uint32_t alias)
+{
+    uint32_t bit;
+    if (alias == 139) bit = 1;
+    else if (alias == OG_DCI_FORMAT_OPTION) bit = 2;
+    else return;
+    if (__atomic_fetch_or(&probed_aliases, bit, __ATOMIC_RELAXED) & bit) return;
+    uint64_t answers = 0;
+    probing = 1;
+    for (unsigned i = 0; i < sizeof probed / sizeof *probed; i++)
+        answers |= (uint64_t)yes(probed[i](object, alias)) << i;
+    probing = 0;
+    og_diag("dci.checks", alias, answers, *(uint64_t *)object, 0);   /* [DEBUG-og2] the object's vtable pointer */
+}
+
+uint32_t og_dci_shown(void *object, uint32_t alias)
+{
+    og_dci_checks(object, alias);
+    return forced(alias) || yes(og_dci_previous_shown(object, alias));
+}
+
+#define OVERRIDE(slot)                                                                    \
+    uint32_t og_dci_slot_##slot(void *object, uint32_t alias)                             \
+    {                                                                                     \
+        return forced(alias) || yes(og_dci_previous_slot_##slot(object, alias));          \
+    }
+OVERRIDE(1b0)
+OVERRIDE(1f0)
+OVERRIDE(210)
+OVERRIDE(6f8)
+OVERRIDE(700)

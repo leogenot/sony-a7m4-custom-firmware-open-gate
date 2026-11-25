@@ -46,13 +46,13 @@
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "ea6d0a6c57009120a71f49aa82eda077514fb292b3d07dce8124adef81e78abe",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
-  "og_dci.c": "11cd7ad4e9d2dc4c249a787258c56e4ff357de7398daeab028bda13c8cf8703b",
-  "og_dci.h": "b1cb84c72ca811c7ab7ae3f5c1c70d8b23aa44d1806e28910809a39c17495159",
+  "og_dci.c": "ad283dd70a96d3d18c3f500e238f4f060ca670a87f3262d135c674e0ed9e16dd",
+  "og_dci.h": "725360cfb648342dfd69de8a106d1259c9b52715c397c4632ccad55e600a56cf",
   "og_dci.S": "01b000aa5ea91352ef6e0a5fe8edb36b1f0fb908a64ab45fb1104354fc76f6ac"
  },
  "module": {
-  "text_bytes": 47748,
-  "text_sha256": "ccd38eefbf28a9bac6760e9975e945239483bd92e87959d0723251e8c36c04f8",
+  "text_bytes": 48340,
+  "text_sha256": "0d6a8ef6bd6ada3a8ef74dd5ac5ec3ef82cc3824a8c3f9e287efb08d6e0eee0e",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -81,7 +81,15 @@
  "stock_functions": {
   "dlsym": "0x17166a0",
   "native_mode": "0x28ecdf8",
-  "dci_condition": "0x2922784"
+  "dci_condition": "0x2922784",
+  "og_dci_previous_shown": "0x1c0f12c",
+  "og_dci_previous_slot_1b0": "0x1c0f1c0",
+  "og_dci_previous_slot_1f0": "0x1c08c18",
+  "og_dci_previous_slot_210": "0x1c08bc0",
+  "og_dci_previous_slot_6f8": "0x1c07aa4",
+  "og_dci_previous_slot_700": "0x1c0ca38",
+  "og_dci_previous_slot_1f8": "0x1c08d74",
+  "og_dci_previous_slot_200": "0x1c08da8"
  },
  "hooks": [
   {
@@ -191,6 +199,83 @@
     "old": "0x0",
     "new": "0x1",
     "what": "Rec Frame Rate item 42 (XAVC S-I DCI 4K's) leaf, shown on the A7 IV; the camera greyed DCI out in File Format with it hidden"
+   }
+  ]
+ },
+ "vtable_hooks": {
+  "what": "[PROBE-dci] R_AARCH64_RELATIVE entries of the menu object's vtables (base 0x58f7a68, second copy 0x58f8618), pointed at og_dci.c's wrappers (a7m4/open_gate.py _hook_vtables). Each entry and its file bytes get the module symbol; the old target is checked first. Sony's functions stay callable as stock_functions og_dci_previous_*.",
+  "entries": [
+   {
+    "r_offset": "0x58f7c10",
+    "addend": "0x1c0f12c",
+    "entry": "og_dci_shown",
+    "what": "base vtable slot 0x1a8: shown (0x1c0f12c: flag, +0x30 availability, slot 0x700); the row builder 0x1c0e52c asks it for every row"
+   },
+   {
+    "r_offset": "0x58f7c18",
+    "addend": "0x1c0f1c0",
+    "entry": "og_dci_slot_1b0",
+    "what": "base vtable slot 0x1b0: 0x1c0f1c0: resolved row flag != 0, then slot 0x6f8"
+   },
+   {
+    "r_offset": "0x58f7c58",
+    "addend": "0x1c08c18",
+    "entry": "og_dci_slot_1f0",
+    "what": "base vtable slot 0x1f0: 0x1c08c18: resolved row flag != 0"
+   },
+   {
+    "r_offset": "0x58f7c78",
+    "addend": "0x1c08bc0",
+    "entry": "og_dci_slot_210",
+    "what": "base vtable slot 0x210: 0x1c08bc0: row flag == 1 (Erlla chains its first instruction)"
+   },
+   {
+    "r_offset": "0x58f8160",
+    "addend": "0x1c07aa4",
+    "entry": "og_dci_slot_6f8",
+    "what": "base vtable slot 0x6f8: 0x1c07aa4: slot 0x700 on the slot-0x750 mapping of the alias"
+   },
+   {
+    "r_offset": "0x58f8168",
+    "addend": "0x1c0ca38",
+    "entry": "og_dci_slot_700",
+    "what": "base vtable slot 0x700: 0x1c0ca38: row bytes +0x1c/+0x1d and the item leaf's +0x28/+0x29 through slot 0x520"
+   },
+   {
+    "r_offset": "0x58f87c0",
+    "addend": "0x1c0f12c",
+    "entry": "og_dci_shown",
+    "what": "second vtable slot 0x1a8: shown (0x1c0f12c: flag, +0x30 availability, slot 0x700); the row builder 0x1c0e52c asks it for every row"
+   },
+   {
+    "r_offset": "0x58f87c8",
+    "addend": "0x1c0f1c0",
+    "entry": "og_dci_slot_1b0",
+    "what": "second vtable slot 0x1b0: 0x1c0f1c0: resolved row flag != 0, then slot 0x6f8"
+   },
+   {
+    "r_offset": "0x58f8808",
+    "addend": "0x1c08c18",
+    "entry": "og_dci_slot_1f0",
+    "what": "second vtable slot 0x1f0: 0x1c08c18: resolved row flag != 0"
+   },
+   {
+    "r_offset": "0x58f8828",
+    "addend": "0x1c08bc0",
+    "entry": "og_dci_slot_210",
+    "what": "second vtable slot 0x210: 0x1c08bc0: row flag == 1 (Erlla chains its first instruction)"
+   },
+   {
+    "r_offset": "0x58f8d10",
+    "addend": "0x1c07aa4",
+    "entry": "og_dci_slot_6f8",
+    "what": "second vtable slot 0x6f8: 0x1c07aa4: slot 0x700 on the slot-0x750 mapping of the alias"
+   },
+   {
+    "r_offset": "0x58f8d18",
+    "addend": "0x1c0ca38",
+    "entry": "og_dci_slot_700",
+    "what": "second vtable slot 0x700: 0x1c0ca38: row bytes +0x1c/+0x1d and the item leaf's +0x28/+0x29 through slot 0x520"
    }
   ]
  },

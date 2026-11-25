@@ -595,6 +595,10 @@ def composed(image, v013, tmp_path_factory):
     return module, Image(compose_ap(v013.data, module, _layout()))
 
 
+def vtable_hooks():
+    return _layout().get("vtable_hooks", {}).get("entries", [])
+
+
 def menu_edits():
     return _layout().get("menu_edits", {}).get("edits", [])
 
@@ -621,6 +625,11 @@ def test_composed_appfw_changes_only_the_listed_places(composed, v013):
     allowed += [(at, at + 4) for at in hooks] + [(at, at + n) for at, n in takeover_places(v013)]
     edited = [v013.offset(int(e["va"], 16) + int(e["at"], 16)) for e in menu_edits()]
     allowed += [(at, at + 2) for at in edited]
+    rela = v013.elf.get_section_by_name(".rela.dyn")["sh_offset"]
+    for h in vtable_hooks():                                                               # [PROBE-dci]
+        at = int(h["r_offset"], 16)
+        index = int((v013.rela[:, 0] == at).nonzero()[0][0])
+        allowed += [(rela + 24 * index, rela + 24 * index + 24), (v013.offset(at), v013.offset(at) + 8)]
     assert all(any(lo <= int(i) < hi for lo, hi in allowed) for i in differ)
     assert set(hooks) <= {int(i) & ~3 for i in differ}
     assert len(out.rela) == len(v013.rela)
@@ -689,7 +698,14 @@ def test_composed_relocations_change_only_the_listed_entries(composed, v013):
     module, out = composed
     differ = [i for i in range(len(v013.rela)) if (v013.rela[i] != out.rela[i]).any()]
     spec = MENU["relocations"]["retarget"]
-    assert len(differ) == sum(r["r_offset"] != r["to"] or r["new"] != r["addend"] for r in spec)
+    vtables = vtable_hooks()
+    assert len(differ) == sum(r["r_offset"] != r["to"] or r["new"] != r["addend"] for r in spec) + len(vtables)
+    for h in vtables:                                                                     # [PROBE-dci]
+        at = int(h["r_offset"], 16)
+        index = int((v013.rela[:, 0] == at).nonzero()[0][0])
+        assert tuple(int(x) for x in v013.rela[index]) == (at, 1027, int(h["addend"], 16))
+        assert tuple(int(x) for x in out.rela[index]) == (at, 1027, module.symbols[h["entry"]])
+        assert struct.unpack("<Q", out.bytes(at, 8))[0] == module.symbols[h["entry"]]
     for r in spec:
         old = int(r["r_offset"], 16)
         index = int((v013.rela[:, 0] == old).nonzero()[0][0])
@@ -857,7 +873,9 @@ def test_og_dci_on_the_host(dci_host):
     assert not [line for line in dci_host if line.startswith("FAIL")]
     for check in ("DCI and its 30p/25p/24p options resolve to themselves",
                   "DCI 60p, 50p, 59.94p and 24.00p keep the chain's answer", "other options keep the chain's answer",
-                  "the chain sees every option call", "the option set is exactly the six"):
+                  "the chain sees every option call", "the option set is exactly the six",
+                  "the DCI row is shown and passes every overridden check without asking Sony",
+                  "other options get Sony's answer, low byte only", "the probe runs once per alias"):
         assert f"ok {check}" in dci_host, check
 
 
@@ -926,3 +944,21 @@ def test_edit_menu_records_refuses_another_record_or_value(v013):
         edit(row | {"at": "0x7f"})
     with pytest.raises(ToolError, match="outside the 0xc0-byte record"):
         edit(leaf | {"at": "0xbf"})
+
+
+# --- [PROBE-dci] Sony's per-option checks, wrapped in the menu object's vtables --------------------------------------
+
+@needs_appfw
+def test_v013_menu_vtables_hold_sonys_per_option_checks(v013):
+    """Both copies of the menu object's vtable (bases 0x58f7a68 and 0x58f8618; 0x59ea9a8 holds base - 0x10, which the
+    static helpers at 0x1c14bfc.. build their objects from) point each wrapped slot at the function the probe calls."""
+    assert v013.relative(0x59ea9a8) == 0x58f7a58
+    stock = _layout()["stock_functions"]
+    for h in vtable_hooks():
+        at, base = int(h["r_offset"], 16), (0x58f7a68 if int(h["r_offset"], 16) < 0x58f8618 else 0x58f8618)
+        assert v013.relative(at) == int(h["addend"], 16)
+        slot = at - base
+        name = "og_dci_previous_shown" if slot == 0x1a8 else f"og_dci_previous_slot_{slot:x}"
+        assert int(stock[name], 16) == int(h["addend"], 16)
+    assert len(vtable_hooks()) == 12 and {int(stock[f"og_dci_previous_slot_{s}"], 16) for s in ("1f8", "200")} == \
+        {0x1c08d74, 0x1c08da8}

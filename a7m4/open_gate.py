@@ -115,6 +115,13 @@ def _check_sources(lay: dict) -> dict:
     return dict(pins)
 
 
+def _entries(lay: dict) -> list[str]:
+    """Every module symbol appFw.so reaches (hooks and vtable entries), once each, in layout order."""
+    hooks = (h["entry"] for h in lay["hooks"])
+    vtables = (h["entry"] for h in lay.get("vtable_hooks", {}).get("entries", []))
+    return list(dict.fromkeys([*hooks, *vtables]))
+
+
 def compile_module(zig: Path, image: SiteImage, workdir: Path) -> Module:
     """Write image.encode() as og_sites.bin and link native/open-gate at layout.json's fixed VAs."""
     from elftools.elf.elffile import ELFFile
@@ -131,7 +138,7 @@ def compile_module(zig: Path, image: SiteImage, workdir: Path) -> Module:
     (workdir / "open_gate.ld").write_text(_linker_script(lay), "utf-8")
     elf_path = workdir / "open_gate.elf"
     # The link drops sections nothing reaches from the entry; every hook entry is reached only from appFw.so.
-    command = [str(zig), "cc", *_CFLAGS, "-Wl,-e,og_hook_first", *(f"-Wl,-u,{e}" for e in dict.fromkeys(h["entry"] for h in lay["hooks"])),
+    command = [str(zig), "cc", *_CFLAGS, "-Wl,-e,og_hook_first", *(f"-Wl,-u,{e}" for e in _entries(lay)),
                "-Wl,-T," + str(workdir / "open_gate.ld"),
                "-I", str(workdir), "-I", str(_NATIVE), *[str(_NATIVE / s) for s in _SOURCES], "-o", str(elf_path)]
     subprocess.run(command, check=True, cwd=workdir)
@@ -319,6 +326,22 @@ def _edit_menu_records(out: bytearray, loads, layout: dict) -> None:
         struct.pack_into("<H", out, record + at, _int(edit["new"]))
 
 
+def _hook_vtables(out: bytearray, appfw: bytes, elf, loads, symbols: Mapping[str, int], layout: dict) -> None:
+    """Point vtable entries at module functions (layout.json "vtable_hooks"): each R_AARCH64_RELATIVE entry at
+    r_offset must hold the expected addend; its addend and the file bytes it fills both get the module symbol."""
+    table = _rela_table(appfw, elf)
+    rela = elf.get_section_by_name(".rela.dyn")
+    for hook in layout.get("vtable_hooks", {}).get("entries", []):
+        at, entry = _int(hook["r_offset"]), hook["entry"]
+        require(entry in symbols, "OG_LINK", f"{entry} is not in the module")
+        index = [int(i) for i in (table[:, 0] == at).nonzero()[0]]
+        found = len(index) == 1 and int(table[index[0], 1]) == _R_RELATIVE
+        require(found and int(table[index[0], 2]) == _int(hook["addend"]), "OG_VTABLE",
+                f"Relocation at {at:#x} is not the expected one")
+        _RELA.pack_into(out, rela["sh_offset"] + _RELA.size * index[0], at, _R_RELATIVE, symbols[entry])
+        struct.pack_into("<Q", out, _file_offset(loads, at, 8), symbols[entry])
+
+
 def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
     """Place the module in appFw.so's zero gap, add its program headers and hooks, and turn the custom firmware's
     Custom Shutter Sound page into the Open Gate page on Shooting > Media; same length as the input."""
@@ -367,6 +390,7 @@ def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
         out[at:at + 4] = _branch(va, module.symbols[hook["entry"]], link)
     _take_over_sound_page(out, appfw, elf, loads, module.symbols, layout)
     _edit_menu_records(out, loads, layout)
+    _hook_vtables(out, appfw, elf, loads, module.symbols, layout)
     result = bytes(out)
     require(len(result) == len(appfw), "OG_SIZE", "appFw.so changed size")
     check = ELFFile(io.BytesIO(result))
