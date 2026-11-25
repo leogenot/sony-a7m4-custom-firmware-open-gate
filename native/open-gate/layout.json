@@ -43,11 +43,16 @@
   "og_internal.h": "cd6327a82a0479c5543fae75a3d27af9df80ffa6911e7ef3826ed1e49004ef70",
   "og_image.h": "feacf8160b1b28d0def68d423ad2a05a148f4c0ada83366a12a77d9bcd483b91",
   "og_sys.h": "d9376106c89f29fea29f2d374ef87b5dc30692f10920b5c8e18d7471b9d6db8a",
-  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6"
+  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
+  "og_diag.c": "ea6d0a6c57009120a71f49aa82eda077514fb292b3d07dce8124adef81e78abe",
+  "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
+  "og_dci.c": "421aef4dd445f8b5af958f39662c380bb11a32f3b30240ba18c242387be18904",
+  "og_dci.h": "a1835d0d387e119efa2a1390dcd1775854761bfed766ecf46e6b0a99a6e03730",
+  "og_dci.S": "01b000aa5ea91352ef6e0a5fe8edb36b1f0fb908a64ab45fb1104354fc76f6ac"
  },
  "module": {
-  "text_bytes": 46444,
-  "text_sha256": "d991841ac0634ce27d6082743ab052fcfff111df05bdd036db058f333040fd9b",
+  "text_bytes": 47876,
+  "text_sha256": "c6441d2af09d3b31655a6e4d9c14f09db59fb662556029277df5aed8823d09c9",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -101,6 +106,30 @@
    "previous_symbol": "og_menu_previous_disabled",
    "entry": "og_menu_disabled",
    "what": "menu-item disabled check (w0 = mid, 1 = disabled: callers such as 0x1ba807c then show the 'currently disabled' caution through 0x1c14efc and do not open the item), first instruction: B to custom sounds' Volume filter (stock 6.02: stp x29, x30, [sp, #-0x20]!)"
+  },
+  {
+   "va": "0x1c08bc0",
+   "kind": "b",
+   "previous_target": "0x8fb90c8",
+   "previous_symbol": "og_dci_previous_item_supported",
+   "entry": "og_dci_item_supported",
+   "what": "[DCI] 'is this menu item supported?' (x0 object, w1 item id; called through a vtable), first instruction: B to Erlla's chain head (stock 6.02: stp x29, x30, [sp, #-0x90]!). Item 42, the DCI Rec Frame Rate, is."
+  },
+  {
+   "va": "0x1c1116c",
+   "kind": "b",
+   "previous_target": "0x8fb90e0",
+   "previous_symbol": "og_dci_previous_map_item",
+   "entry": "og_dci_map_item",
+   "what": "[DCI] menu item id mapping (w1 item id; a leaf), first instruction: B to Erlla's chain head (stock 6.02: adrp x0, 0x5a24000). Item 42 maps to itself."
+  },
+  {
+   "va": "0x1c18004",
+   "kind": "b",
+   "previous_target": "0x8fa1000",
+   "previous_symbol": "og_dci_previous_resolve_option",
+   "entry": "og_dci_resolve_option",
+   "what": "[DCI] menu option id resolution (w0 option id), first instruction: B to Erlla's alias filter (stock 6.02: stp x29, x30, [sp, #-0x20]!). Options 141 (File Format DCI) and 202-204, 206, 207 (DCI 30p, 25p, 24p, 29.97p, 23.98p) resolve to themselves."
   }
  ],
  "camera": {

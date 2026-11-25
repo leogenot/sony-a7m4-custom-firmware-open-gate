@@ -716,7 +716,8 @@ def test_takeover_refuses_another_layout(v013):
 def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(composed, v013):
     module, out = composed
     hooks = _layout()["hooks"]
-    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"]
+    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled", "og_dci_item_supported",
+                                          "og_dci_map_item", "og_dci_resolve_option"]   # [DCI]
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
@@ -783,3 +784,73 @@ def test_edit_bank_refuses_what_it_cannot_do():
         _edit_bank(data, strings | {"replace": {"0x0200ab51": "Open Gate"}})
     with pytest.raises(ToolError, match="does not fit"):
         _edit_bank(data, strings | {"replace": {"0x0200ab5f": "A much longer label"}})
+
+
+# --- [DCI] XAVC S-I DCI 4K in File Format and its Rec Frame Rate item ---------------------------------------------------
+
+FILE_FORMAT_LEAF, FILE_FORMAT_ROWS, DCI_RATE_LEAF, DCI_RATE_ROWS = 0x594df48, 0x4007570, 0x597ba50, 0x4069170
+DCI_HOOKS = {0x1c08bc0: 0x8fb90c8, 0x1c1116c: 0x8fb90e0, 0x1c18004: 0x8fa1000}   # site: Erlla's chain head
+
+
+def rows(img, base, n):
+    """(alias, text, value, row id) of n 0x80-byte option rows."""
+    return [(img.u32(base + 0x80 * i), img.u32(base + 0x80 * i + 8), img.u32(base + 0x80 * i + 0x34),
+             img.u32(base + 0x80 * i + 0x74)) for i in range(n)]
+
+
+@needs_appfw
+def test_v013_holds_the_dci_menu_pieces(v013):
+    """What the DCI build relies on: File Format's leaf lists the DCI row (alias 141, value 12 = XAVC S-I DCI 4K),
+    item 42's leaf holds the DCI frame rates, both are in the item maps, and the three sites hold Erlla's chains."""
+    assert v013.u32(FILE_FORMAT_LEAF) == 0x200a466 and v013.u32(FILE_FORMAT_LEAF + 0x54) == 13
+    assert v013.relative(FILE_FORMAT_LEAF + 0x58) == FILE_FORMAT_ROWS
+    formats = rows(v013, FILE_FORMAT_ROWS + 0x80 * 5, 7)
+    assert [(a, v) for a, _, v, _ in formats] == [(135, 5), (136, 6), (137, 7), (138, 8), (139, 9), (140, 10), (141, 12)]
+    assert formats[-1] == (141, 0x200a46c, 12, 0x12006d)                     # "XAVC S-I DCI 4K"
+    assert v013.u32(DCI_RATE_LEAF) == 0x200a46f and v013.u32(DCI_RATE_LEAF + 0x54) == 10   # "Rec Frame Rate"
+    assert v013.relative(DCI_RATE_LEAF + 0x58) == DCI_RATE_ROWS
+    rates = rows(v013, DCI_RATE_ROWS, 10)
+    assert [(a, t) for a, t, _, _ in rates] == [(200, 0x200a1ec), (201, 0x200a1eb), (202, 0x200a1ea), (203, 0x200a1e9),
+                                                (204, 0x200a1e8), (205, 0x21c6a88), (206, 0x21c6a87), (207, 0x21c6a86),
+                                                (208, 0x200a383), (209, 0x200a0d7)]   # 60 50 30 25 24 59.94 29.97 23.98 24.00 -
+    assert v013.u32(0x50d7200) == 42 and v013.relative(0x50d7208) == DCI_RATE_LEAF
+    assert v013.u32(0x50d7190) == 34 and v013.relative(0x50d7198) == FILE_FORMAT_LEAF
+    assert v013.relative(0x50dd468) == FILE_FORMAT_ROWS + 0x80 * 11           # option map: 141 -> the DCI row
+    for site, head in DCI_HOOKS.items():
+        assert v013.branch(site) == ("b", head)
+
+
+def test_composed_dci_hooks_reach_the_module(composed, v013):
+    module, out = composed
+    for site, head in DCI_HOOKS.items():
+        hook = next(h for h in _layout()["hooks"] if int(h["va"], 16) == site)
+        assert out.branch(site) == ("b", module.symbols[hook["entry"]]) and module.symbols[hook["previous_symbol"]] == head
+    at = module.symbols["og_dci_map_item"]   # cmp w1, #42; b.ne Erlla's head; mov w0, w1; ret
+    assert [out.u32(at + 4 * i) for i in (0, 2, 3)] == [0x7100a83f, 0x2a0103e0, 0xd65f03c0]
+    word = out.u32(at + 4)
+    imm = (word >> 5) & 0x7ffff
+    assert word & 0xff00001f == 0x54000001 and at + 4 + 4 * (imm - ((imm & 0x40000) << 1)) == 0x8fb90e0
+
+
+@pytest.fixture(scope="module")
+def dci_host(tmp_path_factory):
+    clang = shutil.which("clang") or shutil.which("cc")
+    if not clang:
+        pytest.skip("no host C compiler")
+    tmp = tmp_path_factory.mktemp("og_dci_host")
+    binary = tmp / "og_dci_host"
+    subprocess.run([clang, "-std=c11", "-D_DEFAULT_SOURCE", "-O1", "-g", "-Wall", "-Wextra", "-Werror", "-fno-strict-aliasing",
+                    "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-I", str(_NATIVE),
+                    str(_ROOT / "tests/native/og_dci_host.c"), str(_NATIVE / "og_dci.c"), "-o", str(binary)], check=True)
+    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return result.stdout.splitlines()
+
+
+def test_og_dci_on_the_host(dci_host):
+    assert not [line for line in dci_host if line.startswith("FAIL")]
+    for check in ("item 42 is supported", "other items get the chain's answer",
+                  "the chain sees every item call and its object", "DCI and its 30p/25p/24p options resolve to themselves",
+                  "DCI 60p, 50p, 59.94p and 24.00p keep the chain's answer", "other options keep the chain's answer",
+                  "the chain sees every option call", "the option set is exactly the six"):
+        assert f"ok {check}" in dci_host, check

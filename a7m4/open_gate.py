@@ -33,8 +33,9 @@ _PT_LOAD, _PT_PHDR, _PHDR = 1, 6, struct.Struct("<IIQQQQQQ")
 _R_RELATIVE = 1027
 _RELA = struct.Struct("<QQQ")   # Elf64_Rela {r_offset, r_info, r_addend}; also a menu group entry {mid, leaf, page}
 _GROUP_BYTES = 0x2e0            # menu group: 16-byte header {id, title, count, 0}, 30 entries of 24 bytes
-_SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_entry.S", "og_sites.S")
-_HEADERS = ("og.h", "og_internal.h", "og_image.h", "og_sys.h", "og_menu.h")
+_SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_diag.c", "og_dci.c", "og_entry.S",
+            "og_dci.S", "og_sites.S")   # [DCI] og_diag.c, og_dci.c, og_dci.S
+_HEADERS = ("og.h", "og_internal.h", "og_image.h", "og_sys.h", "og_menu.h", "og_diag.h", "og_dci.h")
 _UXC_MAGIC, _UXC_ID_BIAS = b"uxc\x07", 0x1C000000
 _MENU_CALLBACKS = ("og_menu_getter", "og_menu_setter", "og_menu_commit")
 _CFLAGS = ("-target", "aarch64-freestanding-none", "-mcpu=generic-neon-fp_armv8", "-mgeneral-regs-only",
@@ -130,7 +131,7 @@ def compile_module(zig: Path, image: SiteImage, workdir: Path) -> Module:
     (workdir / "open_gate.ld").write_text(_linker_script(lay), "utf-8")
     elf_path = workdir / "open_gate.elf"
     # The link drops sections nothing reaches from the entry; every hook entry is reached only from appFw.so.
-    command = [str(zig), "cc", *_CFLAGS, "-Wl,-e,og_hook_first", *(f"-Wl,-u,{h['entry']}" for h in lay["hooks"]),
+    command = [str(zig), "cc", *_CFLAGS, "-Wl,-e,og_hook_first", *(f"-Wl,-u,{e}" for e in dict.fromkeys(h["entry"] for h in lay["hooks"])),
                "-Wl,-T," + str(workdir / "open_gate.ld"),
                "-I", str(workdir), "-I", str(_NATIVE), *[str(_NATIVE / s) for s in _SOURCES], "-o", str(elf_path)]
     subprocess.run(command, check=True, cwd=workdir)
