@@ -46,13 +46,13 @@
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "6ad717b60fa46b3b12ba75514bb4e554cf1da099f1d30aac9836634796f63436",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
-  "og_angle.c": "bb23205a9c21a09436b51f96b068ad0e206b1452df959fb97f6f398efa3e55ef",
-  "og_angle.h": "e1e30e605301c306da82b44bff17f01ffdb1a23d038ff368e87976f658381650",
+  "og_angle.c": "f02b540067689a386580a2882133b25cda74572d66c41b3c8f2b33be07d6507d",
+  "og_angle.h": "563e307907d4eeaec27695eca936b6bfea1e6a9cdb1438d3b844b2c6a6190bd3",
   "og_angle.S": "7e3ef1e2e4259129172862090a220adc3b0b726dcad5ad500a66fefa8c2122eb"
  },
  "module": {
-  "text_bytes": 48244,
-  "text_sha256": "04217dc1573622f0b22e83e3327138070561738ee1e5aa2b211e7072901346f4",
+  "text_bytes": 48132,
+  "text_sha256": "c018e4e33300d912c1478a8c7f9d546a83deb36d6c016d97335ecb610ba93503",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -301,14 +301,6 @@
    "what": "[PROBE-angle] the dial dispatcher's angle-mode refusal: BL to the 'unavailable' feedback 0x26e898c, traced then called"
   },
   {
-   "va": "0x1c08bc0",
-   "kind": "b",
-   "previous_target": "0x8fb90c8",
-   "previous_symbol": "og_angle_previous_item_supported",
-   "entry": "og_angle_item_supported",
-   "what": "[PROBE-angle] 'is this menu item supported?' (x0 object, w1 item id; called through a vtable), first instruction: B to Erlla's chain head (stock 6.02: stp x29, x30, [sp, #-0x90]!). Item 441, Shutter Mode, is."
-  },
-  {
    "va": "0x1c1116c",
    "kind": "b",
    "previous_target": "0x8fb90e0",
@@ -325,6 +317,27 @@
    "what": "[PROBE-angle] menu option id resolution (w0 option id), first instruction: B to Erlla's alias filter (stock 6.02: stp x29, x30, [sp, #-0x20]!). Options 1543 (Speed) and 1544 (Angle) resolve to themselves."
   }
  ],
+ "row_edits": {
+  "what": "[PROBE-angle] 16-bit fields of option rows changed in place (a7m4/open_gate.py _edit_rows). Sony's row check 0x1c20420 reads a per-product flag at +0x44 + 2 x index; the index comes from 0x1c16460 -> 0x1c0bff4 and is 19 on the A7 IV (feature index 26, menu_item 0), so the flag is +0x6a. The row-list builder 0x1c0e52c (vtable slot 0x2e0, per-row check 0x1c0f12c at slot 0x1a8) and the option check 0x1c08bc0 both use it.",
+  "edits": [
+   {
+    "va": "0x3fdd7f0",
+    "alias": 1543,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "Shutter Mode: Speed, shown on the A7 IV (its +0x30 availability is entry 0, always)"
+   },
+   {
+    "va": "0x3fdd870",
+    "alias": 1544,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "Shutter Mode: Angle, shown on the A7 IV (its +0x30 availability is entry 0, always)"
+   }
+  ]
+ },
  "camera": {
   "dmm_symbols": {
    "alloc": "_Z9dmm_allocjPj",

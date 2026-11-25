@@ -8,11 +8,12 @@
  * drive runs as it does on the FX3; anywhere else it reads the real byte. The real byte and the override are traced
  * whenever they change, and each drive step and refusal is traced too.
  *
- * The Shutter Mode menu item is Sony's own (the FX3's): the A7 IV lists it first under Exposure but its menu
- * lookups don't register it, as with DCI (methods/13-dci-4k on alpha-dci). Item 441 and its two options go through
- * the same three lookups Erlla's custom firmware chains for its own pages; this module goes first and answers for
- * them the way Erlla's code answers for its own: the item is supported and every id resolves to itself. Choosing a
- * row runs Sony's own commit (0x1cd40d8), which sets the mode live, saves it and tells the screens.
+ * The Shutter Mode menu item is Sony's own (the FX3's): the A7 IV lists it first under Exposure, but its two rows
+ * carry the per-product flag off for the A7 IV, which the build switches on (layout.json "row_edits"), as with DCI
+ * (methods/13-dci-4k on alpha-dci). Item 441 and the two options also go through two lookups Erlla's custom firmware
+ * chains for its own pages (the item map and the option resolve); this module goes first and answers for them the
+ * way Erlla's code answers for its own: every id maps or resolves to itself. Choosing a row runs Sony's own commit
+ * (0x1cd40d8), which sets the mode live, saves it and tells the screens.
  */
 #include <stdint.h>
 #include "og_angle.h"
@@ -24,7 +25,6 @@
 extern const volatile uint8_t *og_angle_previous_gate(void) HIDDEN;   /* 0x293d634 itself */
 extern const volatile uint32_t *native_mode(void);                    /* stock: OG_DIAL_MOVIE in movie */
 extern const volatile uint32_t *shutter_mode(void);                   /* stock 0x28f6e38: 0 speed, 1 angle */
-extern uint32_t og_angle_previous_item_supported(void *object, uint32_t item) HIDDEN;   /* Erlla's chain, 0x8fb90c8 */
 extern uint32_t og_angle_previous_resolve_option(uint32_t option) HIDDEN;              /* Erlla's chain, 0x8fa1000 */
 
 #define SHUTTER_MODE_ANGLE 1u
@@ -56,20 +56,12 @@ void og_angle_log_refused(void *context, uint64_t from)
     og_diag("angle.refused", from - 4, 0, 0, 0);   /* [DEBUG-og2] */
 }
 
-enum { TRACED_ITEM = 1, TRACED_SPEED = 2, TRACED_ANGLE = 4 };
+enum { TRACED_SPEED = 1, TRACED_ANGLE = 2 };
 static uint32_t traced;   /* the TRACED_ bits already logged */
 
 static int first(uint32_t bit)
 {
     return !(__atomic_fetch_or(&traced, bit, __ATOMIC_RELAXED) & bit);
-}
-
-uint32_t og_angle_item_supported(void *object, uint32_t item)
-{
-    uint32_t stock = og_angle_previous_item_supported(object, item);
-    if (item != OG_ANGLE_ITEM) return stock;
-    if (first(TRACED_ITEM)) og_diag("angle.item", item, stock, 1, 0);   /* [DEBUG-og2] */
-    return 1;
 }
 
 uint32_t og_angle_resolve_option(uint32_t option)

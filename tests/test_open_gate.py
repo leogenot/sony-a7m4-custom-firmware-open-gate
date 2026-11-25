@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 from a7m4.common import ToolError
-from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _linker_script, _uxc_records, _uxc_texts,
-                            build, compile_module, compose_ap)
+from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _edit_rows, _linker_script, _uxc_records,
+                            _uxc_texts, build, compile_module, compose_ap)
 from a7m4.open_gate_sites import (_CP_IMAGE_VA, _NATIVE, PRESETS, _ROOT, STEP1, _STORED_RECORD, Family, Mode, Run, SiteImage,
                                   Space, check_stock, compile_image, dmmcfg_edits, _layout, load_design, runs_of)
 
@@ -595,6 +595,10 @@ def composed(image, v013, tmp_path_factory):
     return module, Image(compose_ap(v013.data, module, _layout()))
 
 
+def row_edits():
+    return _layout().get("row_edits", {}).get("edits", [])
+
+
 def takeover_places(v013):
     """File (offset, bytes) of every place the takeover may change, from layout.json."""
     rela = v013.elf.get_section_by_name(".rela.dyn")
@@ -615,6 +619,8 @@ def test_composed_appfw_changes_only_the_listed_places(composed, v013):
     hooks = [v013.offset(int(h["va"], 16)) for h in _layout()["hooks"]]
     allowed = [(0x38, 0x3a), (0x5e73000, 0x5e73000 + len(module.text)), (0x5e80000, 0x5e80000 + 17 * 56)]
     allowed += [(at, at + 4) for at in hooks] + [(at, at + n) for at, n in takeover_places(v013)]
+    edited = [v013.offset(int(e["va"], 16) + int(e["at"], 16)) for e in row_edits()]
+    allowed += [(at, at + 2) for at in edited]
     assert all(any(lo <= int(i) < hi for lo, hi in allowed) for i in differ)
     assert set(hooks) <= {int(i) & ~3 for i in differ}
     assert len(out.rela) == len(v013.rela)
@@ -718,7 +724,7 @@ def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(compose
     hooks = _layout()["hooks"]
     assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"] + \
         ["og_angle_gate_entry"] * 14 + ["og_angle_drive_entry"] * 9 + ["og_angle_refused_entry"] + \
-        ["og_angle_item_supported", "og_angle_map_item", "og_angle_resolve_option"]   # [PROBE-angle]
+        ["og_angle_map_item", "og_angle_resolve_option"]   # [PROBE-angle]
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
@@ -861,8 +867,7 @@ def test_og_angle_on_the_host(angle_host):
     for check in ("the real byte is read on every call", "outside angle mode on movie the real byte is returned",
                   "angle mode on movie reads available even when inhibited",
                   "angle mode on movie reads available when not inhibited", "no shutter mode: the real byte",
-                  "no dial: the real byte", "the trace calls return", "item 441 is supported, every time",
-                  "other items get the chain's answer", "the chain sees every item call and its object",
+                  "no dial: the real byte", "the trace calls return",
                   "Speed and Angle resolve to themselves, every time", "other options keep the chain's answer",
                   "the chain sees every option call"):
         assert f"ok {check}" in angle_host, check
@@ -871,7 +876,7 @@ def test_og_angle_on_the_host(angle_host):
 # --- [PROBE-angle] Sony's Shutter Mode menu item -----------------------------------------------------------------------
 
 SHUTTER_MODE_LEAF, SHUTTER_MODE_ROWS, EXPOSURE_GROUP = 0x590ab98, 0x3fdd7f0, 0x50fedc8
-MENU_HOOKS = {0x1c08bc0: 0x8fb90c8, 0x1c1116c: 0x8fb90e0, 0x1c18004: 0x8fa1000}   # site: Erlla's chain head
+MENU_HOOKS = {0x1c1116c: 0x8fb90e0, 0x1c18004: 0x8fa1000}   # site: Erlla's chain head (item map, option resolve)
 
 
 def rows(img, base, n):
@@ -911,3 +916,38 @@ def test_composed_shutter_mode_hooks_reach_the_module(composed, v013):
     word = out.u32(at + 4)
     imm = (word >> 5) & 0x7ffff
     assert word & 0xff00001f == 0x54000001 and at + 4 + 4 * (imm - ((imm & 0x40000) << 1)) == 0x8fb90e0
+
+
+A7IV_FLAG = 0x44 + 2 * 19   # +0x6a: the A7 IV's per-product row flag (Sony's row check 0x1c20420, index 19)
+
+
+@needs_appfw
+def test_v013_hides_the_shutter_mode_rows_by_their_a7iv_flag(v013):
+    """Sony's row check 0x1c20420 reads the halfword at row + 0x44 + 2 x index (index from 0x1c16460) and wants 1; the
+    A7 IV's index is 19 (0x1c0bff4 falls back to 19, and the A7 IV's menu_item, feature index 26 in 0x37b7be8, is 0).
+    Both Shutter Mode rows have that flag off; their +0x30 availability is entry 0 (0x1c9efbc: always)."""
+    assert v013.branch(0x1c20430) == ("bl", 0x1c16460) and v013.branch(0x1c20448) == ("b", 0x1c20410)
+    assert [v013.u32(0x1c20434), v013.u32(0x1c20438)] == [0x8b20c660, 0x79408801]   # add x0, x19, w0, sxtw #1; ldrh +0x44
+    assert v013.branch(0x1c1647c) == ("bl", 0x1c0bff4) and v013.u32(0x1c0c008) == 0x52800260   # mov w0, #19
+    assert v013.u32(0x37b7be8 + 4 * 26) == 0
+    for va in (SHUTTER_MODE_ROWS, SHUTTER_MODE_ROWS + 0x80):
+        assert v013.u32(va + A7IV_FLAG) & 0xffff == 0 and v013.u32(va + 0x30) & 0xffff == 0
+
+
+def test_composed_shutter_mode_rows_are_shown_on_the_a7iv(composed, v013):
+    module, out = composed
+    assert [(e["alias"], e["at"]) for e in row_edits()] == [(1543, "0x6a"), (1544, "0x6a")]
+    for edit in row_edits():
+        va = int(edit["va"], 16)
+        assert out.u32(va) == v013.u32(va) == edit["alias"] and out.u32(va + A7IV_FLAG) & 0xffff == 1
+
+
+def test_edit_rows_refuses_another_row_or_value(v013):
+    loads = [s for s in v013.elf.iter_segments() if s["p_type"] == "PT_LOAD"]
+    edit = {"va": "0x3fdd7f0", "alias": 1543, "at": "0x6a", "old": "0x0", "new": "0x1"}
+    with pytest.raises(ToolError, match="not option 1544"):
+        _edit_rows(bytearray(v013.data), loads, {"row_edits": {"edits": [edit | {"alias": 1544}]}})
+    with pytest.raises(ToolError, match="expected old value"):
+        _edit_rows(bytearray(v013.data), loads, {"row_edits": {"edits": [edit | {"old": "0x1"}]}})
+    with pytest.raises(ToolError, match="outside the 0x80-byte row"):
+        _edit_rows(bytearray(v013.data), loads, {"row_edits": {"edits": [edit | {"at": "0x7f"}]}})

@@ -8,7 +8,6 @@
 
 /* [PROBE-angle] Sony's own Shutter Mode menu item, the FX3's, which the A7 IV menu lists under Exposure (group 0x10)
  * but hides: item 441, leaf 0x590ab98 ("Shutter Mode"), options 1543 "Speed" and 1544 "Angle". */
-#define OG_ANGLE_ITEM 441u
 #define OG_ANGLE_SPEED_OPTION 1543u
 #define OG_ANGLE_ANGLE_OPTION 1544u
 
@@ -19,9 +18,6 @@ const volatile uint8_t *og_angle_gate(void);
  * from = the caller's return address. */
 void og_angle_log_drive(void *context, int32_t step, uint64_t from);
 void og_angle_log_refused(void *context, uint64_t from);
-
-/* 0x1c08bc0, "is this menu item supported?": item 441 is. */
-uint32_t og_angle_item_supported(void *object, uint32_t item);
 
 /* 0x1c18004, an option id resolved for the menu: Speed and Angle resolve to themselves. */
 uint32_t og_angle_resolve_option(uint32_t option);
