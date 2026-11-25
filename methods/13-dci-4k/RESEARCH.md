@@ -72,9 +72,11 @@ items 34 and 39–42, options 139–141 and 182–209. If DCI doesn't appear, it
 
 Keep open gate **Off** while DCI is selected: its sensor changes are made for 4K and 5.7K, not DCI.
 
-**If the camera freezes or won't start its live view on movie:** pull the battery and start with the switch on
-**stills**, then choose another File Format, or set it back in service mode. The file format is saved in the camera,
-so a format the pipeline can't run would come back at every start on movie.
+**If the camera freezes or won't start its live view on movie:** the file format is saved in the camera, so a
+format its pipeline can't run would come back at every start on movie. Pull the battery, start with the switch on
+**stills** (the movie pipeline doesn't run there), and use **MENU > Setup > Reset/Save Settings > Camera Settings
+Reset**, which is expected to put the movie File Format back to its default (not checked on this body). Installing
+Beta 0.1 again doesn't change saved settings, so reset first.
 
 ## Two ways forward (before the build)
 
