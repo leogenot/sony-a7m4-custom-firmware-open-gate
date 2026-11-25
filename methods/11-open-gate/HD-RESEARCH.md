@@ -83,9 +83,10 @@ changes:
 | `hd.mode` | `0x011d11ac` | readout mode id, size source, NTSC/PAL family |
 | `hd.scaler` | `0x0145091c` | second scaler input, window start, window size, the four fractions |
 
-The addresses are stock 6.02's; v0.1.3's coprocessor program differs (`cebf825e…` against `7b9b137d…`). The kit's
-expected state for 4K 3:2 (`ogsq_v3`: readout 7032x4688, crop 7008x4672, front end 4336x2438, size source 3840x2160,
-mode `0x8c0` / `0x880`) is the self-check: if the log shows it with 4K 3:2 on, the other lines can be believed.
+The addresses are stock 6.02's; v0.1.3's coprocessor program differs (`cebf825e…` against `7b9b137d…`). The
+self-check is what the sensor step sets: with 4K 3:2 on, the log must show readout 7032x4688 (crop 7008x4672) on mode
+`0x8c0` (`0x880` on PAL), as the kit measured for `ogsq_v3`. Front end and size source may differ from the kit's
+4336x2438 and 3840x2160, which it measured without the 3840x2560 output-size step our preset adds.
 
 ### Camera steps
 
