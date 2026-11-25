@@ -63,3 +63,15 @@ og_angle_gate_entry:
 
     TRACE_THEN og_angle_drive_entry, og_angle_log_drive, x2, og_angle_previous_drive
     TRACE_THEN og_angle_refused_entry, og_angle_log_refused, x1, og_angle_previous_refused
+
+/* 0x1c1116c maps a menu item id through a start-up table. It is a leaf that only writes x0-x4, and appFw.so is built
+ * by GCC 6.4 (-fipa-ra), so its caller may keep values in the other scratch registers: this entry writes nothing but
+ * x0 and the flags (as Erlla's own entry at 0x8fb90e0, which it goes before). Item 441, Shutter Mode, maps to itself. */
+    .global og_angle_map_item
+    .type og_angle_map_item, %function
+og_angle_map_item:
+    cmp w1, #441
+    b.ne og_angle_previous_map_item
+    mov w0, w1
+    ret
+    .size og_angle_map_item, . - og_angle_map_item

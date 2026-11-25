@@ -46,13 +46,13 @@
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "6ad717b60fa46b3b12ba75514bb4e554cf1da099f1d30aac9836634796f63436",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
-  "og_angle.c": "230ad6e0b5f05b961412b45b645ed56c37ee716130414cc842a306881ae2fe62",
-  "og_angle.h": "9f49e03c2b85a77c47eadb7047382f955bcd9f7d63ad36bba57464f02125b3c0",
-  "og_angle.S": "480c4b24fd28ab140758ba17bf456389a5794970e0bc416a94fffbe0e08ff476"
+  "og_angle.c": "2459e15161e7fc01cdbecb7c2c1af9e9a946bf658f078bb74cecef2f4b8075f4",
+  "og_angle.h": "e1e30e605301c306da82b44bff17f01ffdb1a23d038ff368e87976f658381650",
+  "og_angle.S": "3f4c9d50f48086d5ec48b58ca59f3f116cf8c34a884d838ae53926a8808c0d0f"
  },
  "module": {
-  "text_bytes": 47988,
-  "text_sha256": "a985bcc5bced6c37711ca87d9ab4f3a303265fcf96de7ee07699f3cc50a65681",
+  "text_bytes": 48244,
+  "text_sha256": "04217dc1573622f0b22e83e3327138070561738ee1e5aa2b211e7072901346f4",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -299,6 +299,30 @@
    "previous_symbol": "og_angle_previous_refused",
    "entry": "og_angle_refused_entry",
    "what": "[PROBE-angle] the dial dispatcher's angle-mode refusal: BL to the 'unavailable' feedback 0x26e898c, traced then called"
+  },
+  {
+   "va": "0x1c08bc0",
+   "kind": "b",
+   "previous_target": "0x8fb90c8",
+   "previous_symbol": "og_angle_previous_item_supported",
+   "entry": "og_angle_item_supported",
+   "what": "[PROBE-angle] 'is this menu item supported?' (x0 object, w1 item id; called through a vtable), first instruction: B to Erlla's chain head (stock 6.02: stp x29, x30, [sp, #-0x90]!). Item 441, Shutter Mode, is."
+  },
+  {
+   "va": "0x1c1116c",
+   "kind": "b",
+   "previous_target": "0x8fb90e0",
+   "previous_symbol": "og_angle_previous_map_item",
+   "entry": "og_angle_map_item",
+   "what": "[PROBE-angle] menu item id mapping (w1 item id; a leaf), first instruction: B to Erlla's chain head (stock 6.02: adrp x0, 0x5a24000). Item 441 maps to itself."
+  },
+  {
+   "va": "0x1c18004",
+   "kind": "b",
+   "previous_target": "0x8fa1000",
+   "previous_symbol": "og_angle_previous_resolve_option",
+   "entry": "og_angle_resolve_option",
+   "what": "[PROBE-angle] menu option id resolution (w0 option id), first instruction: B to Erlla's alias filter (stock 6.02: stp x29, x30, [sp, #-0x20]!). Options 1543 (Speed) and 1544 (Angle) resolve to themselves."
   }
  ],
  "camera": {

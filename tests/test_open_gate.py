@@ -717,7 +717,8 @@ def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(compose
     module, out = composed
     hooks = _layout()["hooks"]
     assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"] + \
-        ["og_angle_gate_entry"] * 14 + ["og_angle_drive_entry"] * 9 + ["og_angle_refused_entry"]   # [PROBE-angle]
+        ["og_angle_gate_entry"] * 14 + ["og_angle_drive_entry"] * 9 + ["og_angle_refused_entry"] + \
+        ["og_angle_item_supported", "og_angle_map_item", "og_angle_resolve_option"]   # [PROBE-angle]
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
@@ -860,5 +861,53 @@ def test_og_angle_on_the_host(angle_host):
     for check in ("the real byte is read on every call", "outside angle mode on movie the real byte is returned",
                   "angle mode on movie reads available even when inhibited",
                   "angle mode on movie reads available when not inhibited", "no shutter mode: the real byte",
-                  "no dial: the real byte", "the trace calls return"):
+                  "no dial: the real byte", "the trace calls return", "item 441 is supported, every time",
+                  "other items get the chain's answer", "the chain sees every item call and its object",
+                  "Speed and Angle resolve to themselves, every time", "other options keep the chain's answer",
+                  "the chain sees every option call"):
         assert f"ok {check}" in angle_host, check
+
+
+# --- [PROBE-angle] Sony's Shutter Mode menu item -----------------------------------------------------------------------
+
+SHUTTER_MODE_LEAF, SHUTTER_MODE_ROWS, EXPOSURE_GROUP = 0x590ab98, 0x3fdd7f0, 0x50fedc8
+MENU_HOOKS = {0x1c08bc0: 0x8fb90c8, 0x1c1116c: 0x8fb90e0, 0x1c18004: 0x8fa1000}   # site: Erlla's chain head
+
+
+def rows(img, base, n):
+    """(alias, text, value, row id) of n 0x80-byte option rows."""
+    return [(img.u32(base + 0x80 * i), img.u32(base + 0x80 * i + 8), img.u32(base + 0x80 * i + 0x34),
+             img.u32(base + 0x80 * i + 0x74)) for i in range(n)]
+
+
+@needs_appfw
+def test_v013_holds_the_shutter_mode_menu_item(v013):
+    """What the menu relies on: the Exposure group (id 0x10, "Exposure") lists item 441 first; item 441 maps to the
+    Shutter Mode leaf ("Shutter Mode", setting 0x490c), whose two rows are Speed (1543, value 0) and Angle (1544,
+    value 1), each in the option map; its getter reads the shutter mode and its commit is Sony's; the three menu
+    lookups hold Erlla's chains."""
+    assert v013.data[v013.offset(EXPOSURE_GROUP):v013.offset(EXPOSURE_GROUP) + 12] == bytes.fromhex("100000003f60000211000000")
+    assert v013.u32(EXPOSURE_GROUP + 16) == 441 and v013.relative(EXPOSURE_GROUP + 24) == SHUTTER_MODE_LEAF
+    assert v013.u32(0x50d8890) == 441 and v013.relative(0x50d8898) == SHUTTER_MODE_LEAF             # item map
+    leaf = SHUTTER_MODE_LEAF
+    assert v013.u32(leaf) == 0x2008e2f and v013.u32(leaf + 0x54) == 2 and v013.u32(leaf + 0x68) == 0x490c
+    assert v013.relative(leaf + 0x58) == SHUTTER_MODE_ROWS
+    assert [v013.relative(leaf + o) for o in (0x78, 0x80, 0x88)] == [0x1c6c0cc, 0x1cabae8, 0x1cd40d8]
+    assert v013.branch(0x1c6c0e4) == ("bl", SHUTTER_MODE)                                            # getter reads it
+    assert rows(v013, SHUTTER_MODE_ROWS, 2) == [(1543, 0x2008e2c, 0, 0x120557), (1544, 0x2008e35, 1, 0x120558)]
+    assert [(v013.u32(0x50e2c00 + 16 * i), v013.relative(0x50e2c08 + 16 * i)) for i in (0, 1)] == \
+        [(1543, SHUTTER_MODE_ROWS), (1544, SHUTTER_MODE_ROWS + 0x80)]                                 # option map
+    for site, head in MENU_HOOKS.items():
+        assert v013.branch(site) == ("b", head)
+
+
+def test_composed_shutter_mode_hooks_reach_the_module(composed, v013):
+    module, out = composed
+    for site, head in MENU_HOOKS.items():
+        hook = next(h for h in _layout()["hooks"] if int(h["va"], 16) == site)
+        assert out.branch(site) == ("b", module.symbols[hook["entry"]]) and module.symbols[hook["previous_symbol"]] == head
+    at = module.symbols["og_angle_map_item"]   # cmp w1, #441; b.ne Erlla's head; mov w0, w1; ret
+    assert [out.u32(at + 4 * i) for i in (0, 2, 3)] == [0x7106e43f, 0x2a0103e0, 0xd65f03c0]
+    word = out.u32(at + 4)
+    imm = (word >> 5) & 0x7ffff
+    assert word & 0xff00001f == 0x54000001 and at + 4 + 4 * (imm - ((imm & 0x40000) << 1)) == 0x8fb90e0
