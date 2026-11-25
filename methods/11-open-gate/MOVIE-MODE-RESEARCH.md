@@ -83,7 +83,10 @@ again at start-up.
 For the start-up case: apply at `og_power_on` on movie, behind the crash guard, if the probe shows the pipeline takes
 it.
 
-## Proposed probe build (not built)
+## Probe build: `alpha-movie-0.1`
+
+Built as [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1)
+(branch `alpha-movie`), not yet camera-tested.
 
 - **Mode on movie:** enabled. `og_select` applies on movie with the step trace on (`/setting/og_diag.txt`, as in the
   diagnostic builds).
