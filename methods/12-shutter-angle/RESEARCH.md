@@ -2,8 +2,9 @@
 
 **Goal:** set the movie shutter as an angle (180°, 90°, …) with the camera's dial, like the FX3, on the A7 IV.
 
-**Status:** offline research done. Test builds `alpha-angle-0.1` (dial only) and `alpha-angle-0.2` (dial plus a
-Speed / Angle menu item) not yet run on a camera.
+**Status:** offline research done. Test builds `alpha-angle-0.1` (dial only) and `alpha-angle-0.3` (dial plus a
+Speed / Angle menu item) not yet run on a camera. `alpha-angle-0.2` is withdrawn: the DCI camera run showed the
+rows' per-product flag hides them, and 0.2 didn't set it.
 
 ## What was already known
 
@@ -74,9 +75,10 @@ class), and whether it's the only guard, can't be settled offline.
 
 The override only lasts while the camera runs; nothing is saved. To go back: `bk w 0x02cf1702 00` (or install Beta).
 
-## The Shutter Mode menu item (`alpha-angle-0.2`)
+## The Shutter Mode menu item (`alpha-angle-0.3`)
 
-The A7 IV already has the FX3's **Shutter Mode** item, complete, and lists it; only its menu lookups leave it out:
+The A7 IV already has the FX3's **Shutter Mode** item, complete, and lists it; its rows are switched off for the
+A7 IV:
 
 | Piece | In v0.1.3 |
 | --- | --- |
@@ -91,12 +93,19 @@ The A7 IV already has the FX3's **Shutter Mode** item, complete, and lists it; o
 All texts are in the English function bank (`string_english_func_j.uxc`), so nothing is renamed. The live setter
 the dial build was missing is Sony's own commit: choosing a row changes the mode at once, with no cold boot.
 
-The A7 IV leaves the item out the same way it leaves out DCI
-([DCI research](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha-dci/methods/13-dci-4k/RESEARCH.md)):
-the item check `0x1c08bc0`, the item map `0x1c1116c` and the option resolve `0x1c18004` don't know it.
-`alpha-angle-0.2` adds three hooks that go before Erlla's chains at those sites (as `alpha-dci-0.1` does for DCI):
-item 441 is supported, maps to itself, and options 1543 and 1544 resolve to themselves. Everything else is Sony's code. The trace adds
-`angle.item 441 <Sony's answer> 1` and `angle.option <option> <Sony's answer> <option>`, once each.
+The A7 IV hides it the same way it hides DCI
+([DCI research](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/blob/alpha-dci/methods/13-dci-4k/RESEARCH.md#what-hides-it)):
+Sony's row check `0x1c20420` reads a per-product flag at row `+0x44 + 2 x index`, index 19 on the A7 IV (`+0x6a`),
+and both Shutter Mode rows have it at 0. The row-list builder and the option check `0x1c08bc0` drop such rows. The
+rows' other condition (`+0x30`) is entry 0, always available.
+
+`alpha-angle-0.3` sets that flag to 1 for 1543 and 1544 (the build's row-edit step, `layout.json` `row_edits`), and
+keeps two hooks before Erlla's chains: the item map `0x1c1116c` (441 maps to itself) and the option resolve
+`0x1c18004` (1543 and 1544 resolve to themselves). Running `0x1c20420` in an emulator on the composed `appFw.so`, with
+the A7 IV's feature index, shows both rows and leaves every other row as it was. `alpha-angle-0.2` also hooked
+`0x1c08bc0` for "item 441"; that check takes an option alias, and option 441 is the "89M 4:2:2 10bit" bitrate,
+already shown, so 0.3 drops that hook. The trace adds `angle.option <option> <Sony's answer> <option>` once per row,
+which shows the menu reached the Shutter Mode rows.
 
 Where it should show: **MENU → Exposure/Color → Exposure → Shutter Mode** (first item), as on the FX3. Sony
 documents it on the FX3 for movie and S&Q; whether the A7 IV greys it out on stills is for the camera run.
@@ -114,10 +123,10 @@ documents it on the FX3 for movie and S&Q; whether the A7 IV greys it out on sti
 
 ## Camera tests
 
-On `alpha-angle-0.2`, switch angle mode on from the menu (M1). On `alpha-angle-0.1`, use service mode, as in
+On `alpha-angle-0.3`, switch angle mode on from the menu (M1). On `alpha-angle-0.1`, use service mode, as in
 `SHUTTER_ANGLE.md`: `bk w 0x02cf1702 01`, `bk s`, cold boot, start on movie.
 
-| Test (0.2 only) | Do this | Check |
+| Test (0.3 only) | Do this | Check |
 | --- | --- | --- |
 | M1 | Movie: MENU → Exposure/Color → Exposure → Shutter Mode → **Angle** | The item is there; the shooting screen shows the angle (180°) |
 | M2 | Shutter Mode → **Speed** | The screen shows a shutter speed again, at once |
@@ -136,7 +145,7 @@ On `alpha-angle-0.2`, switch angle mode on from the menu (M1). On `alpha-angle-0
 | Result | Next |
 | --- | --- |
 | M1–M3 and A1–A3 pass | Promote to beta: the menu item and the dial work |
-| M1 fails: no item, or "currently disabled" | Read `angle.item` / `angle.option`: another check hides it (the 0x1c14e6c filter, or the row flags) |
+| M1 fails: no item, or "currently disabled" | No `angle.option` lines: the item itself is hidden (an item-level rule, not the rows). `angle.option` lines but no item: the 0x1c14e6c filter or the per-alias check (vtable slot `0x700`) |
 | The trace shows `angle.drive` but the value doesn't change | A second block after the drive (event `0x3fb8` handling): trace it |
 | The value changes but the exposure doesn't follow | The angle is display-only on this body: stop |
 | Still `angle.refused`, or no `angle.gate` with the byte set | The dial uses another path: read the trace for which |
