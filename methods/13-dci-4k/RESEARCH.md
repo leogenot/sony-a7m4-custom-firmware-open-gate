@@ -4,9 +4,10 @@
 (NTSC) and 25p (PAL).
 
 **Status:** camera runs on 2026-11-25. `alpha-dci-0.1`: **DCI not in File Format** (the rows' per-product flag,
-below). `alpha-dci-0.2` set it: **DCI listed but greyed out**. The DCI Rec Frame Rate item has the same flag off in
-its leaf. Test build `alpha-dci-0.3` sets that too, not yet run on a camera. Every recording layer is present in the
-A7 IV's v0.1.3 files.
+below). `alpha-dci-0.2` set it: **DCI listed but greyed out**. `alpha-dci-0.3` also set the DCI Rec Frame Rate
+item's flag: **still greyed out**. Test build `alpha-dci-0.4` answers yes for DCI in the menu's per-option checks
+and logs Sony's own answers, not yet run on a camera. Every recording layer is present in the A7 IV's v0.1.3
+files.
 
 ## Present in the firmware
 
@@ -113,10 +114,42 @@ hook: that check takes an option alias, so its answer for "item 42" was about op
 shown), and its `dci.item` lines were mislabelled. The emulator on the composed `appFw.so` passes the item check
 for item 42 and the row check for DCI and its five frame rates, and changes nothing else.
 
-If DCI is still greyed out, the next suspects are Sony's run-time availability rules for File Format, such as
+On the camera: still greyed out. The log:
+
+```text
+dci.option 8b 8b 8b 2    # 139 (S-I 4K): Sony resolves it to itself; setting 0x2530 = 2
+dci.option 8c 8c 8c 2    # 140 (S-I HD)
+dci.option 8d 8d 8d 2    # 141 (DCI): Sony resolves it to itself too
+```
+
+So the lookup hook isn't needed, and setting `0x2530` (2, nonzero) never hid DCI. No Rec Frame Rate option was
+resolved: the menu never reached DCI's frame rates.
+
+### `alpha-dci-0.4`
+
+The menu object answers per-option questions through its vtable (base `0x58f7a68`, a second copy at `0x58f8618`;
+`0x59ea9a8` holds base − 0x10, from which the static helpers at `0x1c14bfc`.. build their objects):
+
+| Slot | Function | What it checks |
+| --- | --- | --- |
+| `0x1a8` | `0x1c0f12c` | shown: row flag == 1, the `+0x30` availability, slot `0x700` (the row builder asks it per row) |
+| `0x1b0` | `0x1c0f1c0` | resolved row flag != 0, then slot `0x6f8` |
+| `0x1f0` | `0x1c08c18` | resolved row flag != 0 |
+| `0x1f8` | `0x1c08d74` | a `+0xe` flag in a record from another table (id 141 there is Camera Set Memory 1) |
+| `0x200` | `0x1c08da8` | the same record, flag != 0 |
+| `0x210` | `0x1c08bc0` | row flag == 1 (Erlla chains its first instruction) |
+| `0x6f8` | `0x1c07aa4` | slot `0x700` on the slot-`0x750` mapping of the alias |
+| `0x700` | `0x1c0ca38` | row bytes `+0x1c`/`+0x1d` and the item leaf's `+0x28`/`+0x29` through slot `0x520` |
+
+`alpha-dci-0.4` points both vtables' entries for `0x1a8`, `0x1b0`, `0x1f0`, `0x210`, `0x6f8` and `0x700` at
+`og_dci.c` wrappers (`layout.json` `vtable_hooks`, `_hook_vtables`): yes for 141, Sony's answer for every other id.
+`0x1f8` and `0x200` use another id space, so they're only probed. The first time the row builder asks about 139 and
+141, the log gets `dci.checks <alias> <answers> <vtable>`, with bit *i* of `<answers>` = Sony's answer from the
+table's *i*-th row. If 139 and 141 differ in a bit, that check is what greys DCI out. If they don't, the greying is
+decided outside this object, and the next suspects are Sony's run-time availability rules for File Format, such as
 `PRM_HAITA_setting_file_format_system_architecture` (it names DCI with the A7 IV's `IPSX` architecture) and
-`PRM_license_type_dci4k24p_available`; the log's `dci.option 141` value of setting `0x2530` helps tell them apart.
-### Camera test (`alpha-dci-0.3`)
+`PRM_license_type_dci4k24p_available`.
+### Camera test (`alpha-dci-0.4`)
 
 1. In movie mode, open **MENU > Shooting > Image Quality > File Format**: is **XAVC S-I DCI 4K** listed?
 2. Choose it. In **Movie Settings > Rec Frame Rate**: 24p and 30p on NTSC, 25p on PAL?
