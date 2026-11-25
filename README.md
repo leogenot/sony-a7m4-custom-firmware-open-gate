@@ -18,6 +18,12 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 > Read the full [disclaimer and limitation of liability](#disclaimer-and-limitation-of-liability) before downloading.
 > If you don't accept it, don't use anything here.
 
+> [!WARNING]
+> **This is the `alpha-dci` branch: a test build, not for regular use.** It adds **XAVC S-I DCI 4K** (4096x2160) to
+> File Format and its Rec Frame Rate choices (24p / 30p on NTSC, 25p on PAL), from code already in the A7 IV's
+> firmware, and writes a step log to `/setting/og_diag.txt`. What it tests and why: [DCI 4K research](methods/13-dci-4k/RESEARCH.md).
+> For normal use, take beta from `main`.
+
 [Features](#features) · [Download](#download) · [Install](#install) · [Using the features](#using-the-features) ·
 [Limitations](#limitations) · [How open gate works](#how-open-gate-works) · [Build it yourself](#build-it-yourself) ·
 [Disclaimer](#disclaimer-and-limitation-of-liability)

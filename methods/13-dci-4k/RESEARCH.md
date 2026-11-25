@@ -3,8 +3,8 @@
 **Goal:** XAVC S-I DCI 4K in **MENU > Shooting > Image Quality > File Format**, with Rec Frame Rate 24p / 30p
 (NTSC) and 25p (PAL).
 
-**Status:** offline research; no build yet. Every recording layer is present in the A7 IV's v0.1.3 files; what
-hides it is the menu's option lookup, built at run time.
+**Status:** test build `alpha-dci-0.1`, not yet run on a camera. Every recording layer is present in the A7 IV's
+v0.1.3 files; what hides it is the menu's lookups, built at run time.
 
 ## Present in the firmware
 
@@ -31,7 +31,52 @@ lookup in a run-time map (a red-black tree, key at `+0x20`, candidate at `+0x24`
 id, calls a virtual check (`vtable +0x210`) and returns the first that passes, else `0x15d8`. Which candidates id 141
 has, and why they fail on the A7 IV, is decided by tables registered at start-up and isn't readable from the files.
 
-## Two ways forward
+## The Rec Frame Rate items
+
+Movie Settings' Rec Frame Rate is seven items, one per format family, all listed on that page; the camera shows
+the one for the current file format (Sony's rule
+`setting_menu_shooting_mode_setting_movie_rec_frame_rate_xavc_s_i_dci_4k_setting_file_format`). Item map entries
+`0x50d7190`.. hold item 34 (File Format) → leaf `0x594df48` and items 36–42 → the seven Rec Frame Rate leaves.
+**Item 42** is DCI's: leaf `0x597ba50`, options 200–209 = 60p, 50p, 30p, 25p, 24p, 59.94p, 29.97p, 23.98p, 24.00p,
+"-" (values 0, 1, 2, 3, 4, 0, 2, 4, 8, 7).
+
+## Menu lookups and Erlla's chains
+
+Erlla's custom firmware redirects three stock lookups to make its own pages and options appear, each answering for
+its own ids and passing everything else on:
+
+| Stock function | What it does | Erlla's answer for its ids |
+| --- | --- | --- |
+| `0x1c08bc0(object, item)` | "is this menu item supported?" (called through a vtable) | 1 for items 1592–1599 |
+| `0x1c1116c(…, item)` | maps an item id through a start-up table (a leaf, writes x0–x4 only) | the id itself |
+| `0x1c18004(option)` | resolves an option id (`0x1c11044`: per-candidate virtual check, else `0x15d8`) | the id itself, for 5607–5630 |
+
+## The test build: `alpha-dci-0.1`
+
+Beta 0.1 plus three hooks that go before Erlla's chains at those sites and answer for DCI the same way: item 42 is
+supported and maps to itself; options 141 (File Format DCI) and 202, 203, 204, 206, 207 (DCI 30p, 25p, 24p and the
+29.97p, 23.98p labels) resolve to themselves. 60p, 50p, 59.94p and 24.00p are left to Sony's answer, so they stay
+hidden; which of the rest NTSC or PAL shows is Sony's own rule. The item map hook is plain assembly that writes only
+x0 and the flags, since its caller may keep values in scratch registers (GCC 6.4, `-fipa-ra`).
+
+The step log (`/setting/og_diag.txt`) records once per id what Sony's chain answered and what the module returned:
+items 34 and 39–42, options 139–141 and 182–209. If DCI doesn't appear, it shows what a visible option (139, S-I 4K;
+182–190, its frame rates) resolves to, which is what the next build would return for DCI.
+
+### Camera test
+
+1. In movie mode, open **MENU > Shooting > Image Quality > File Format**: is **XAVC S-I DCI 4K** listed?
+2. Choose it. In **Movie Settings > Rec Frame Rate**: 24p and 30p on NTSC, 25p on PAL?
+3. Record 10 s at each frame rate: a 4096x2160 XAVC S-I file that plays?
+4. Choose XAVC S-I 4K again: back to normal.
+
+Keep open gate **Off** while DCI is selected: its sensor changes are made for 4K and 5.7K, not DCI.
+
+**If the camera freezes or won't start its live view on movie:** pull the battery and start with the switch on
+**stills**, then choose another File Format, or set it back in service mode. The file format is saved in the camera,
+so a format the pipeline can't run would come back at every start on movie.
+
+## Two ways forward (before the build)
 
 1. **Recording first, through Sony's own path.** A probe build calls the File Format leaf's own commit
    (`0x1cd2f18`) with alias 141 from a test row on our Open Gate page, and logs what happens. If the camera then
