@@ -8,13 +8,13 @@ research behind them is in [sony-a7iv-feature-research](https://github.com/leoge
 
 | Feature | Release | Notes |
 | --- | --- | --- |
-| Open gate 4K 3:2 (3840x2560) and 5.7K 3:2 (5760x3840), NTSC and PAL | [`beta-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.1) | Camera-tested. Chosen with the switch on stills. |
+| Open gate 4K 3:2 (3840x2560) and 5.7K 3:2 (5760x3840), NTSC and PAL | [`beta-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.1), [`beta-0.2`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.2) | Camera-tested. Chosen with the switch on stills. |
+| English Custom LUT screens | [`beta-0.2`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.2) | Camera-tested as [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1) (same package). |
 
 ## Test builds waiting for a camera run
 
 | Feature | Release | What the test decides |
 | --- | --- | --- |
-| English Custom LUT screens | [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1) | Whether long English labels fit on screen |
 | Open gate chosen and applied on movie | [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1) | Whether a movie-mode apply takes effect after the menu closes, needs a pipeline restart, or freezes |
 | Shutter angle on the dial | [`alpha-angle-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.1) | Whether lifting the availability gate `0x293d634` is enough, and whether the exposure follows the angle. Also the pilot for unlocking other FX3-only code. |
 | XAVC S-I DCI 4K in File Format, Rec Frame Rate 24p/30p (NTSC), 25p (PAL) | [`alpha-dci-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-dci-0.1) | Whether unhiding Sony's DCI item (42) and options (141, 202–207) in the menu lookups is enough, and whether the pipeline records 4096x2160 |
