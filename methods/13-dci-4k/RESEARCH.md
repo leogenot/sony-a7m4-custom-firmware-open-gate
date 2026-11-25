@@ -3,9 +3,10 @@
 **Goal:** XAVC S-I DCI 4K in **MENU > Shooting > Image Quality > File Format**, with Rec Frame Rate 24p / 30p
 (NTSC) and 25p (PAL).
 
-**Status:** `alpha-dci-0.1` ran on a camera (2026-11-25): **DCI was not in File Format.** The cause is a
-per-product flag in the option rows (below). Test build `alpha-dci-0.2` sets it, not yet run on a camera. Every
-recording layer is present in the A7 IV's v0.1.3 files.
+**Status:** camera runs on 2026-11-25. `alpha-dci-0.1`: **DCI not in File Format** (the rows' per-product flag,
+below). `alpha-dci-0.2` set it: **DCI listed but greyed out**. The DCI Rec Frame Rate item has the same flag off in
+its leaf. Test build `alpha-dci-0.3` sets that too, not yet run on a camera. Every recording layer is present in the
+A7 IV's v0.1.3 files.
 
 ## Present in the firmware
 
@@ -40,7 +41,13 @@ passes, and that check runs three tests:
    (`0x50`–`0x58`), the usual NTSC/PAL rules.
 3. A virtual check per alias (slot `0x700`).
 
-The option check `0x1c08bc0` (slot `0x210`; it takes an option alias, not an item id) runs test 1 too. Running
+The option check `0x1c08bc0` (slot `0x210`; it takes an option alias, not an item id) runs test 1 too.
+
+**Items have the same flag**, in their leaf: `0x1c2006c` reads the halfword at leaf `+0x2c + 2 x index` and wants 1
+(`+0x52` on the A7 IV); the item check `0x1c0f3ac` (slot `0x208`) reaches it. It is on for File Format's leaf and
+off for DCI's Rec Frame Rate leaf (item 42, `0x597ba50`, flags `01000010000000000000`, the same pattern as the DCI
+row). With item 42 hidden, DCI has no frame rate to record with, which is the likely reason `alpha-dci-0.2` showed
+DCI greyed out. Running
 `0x1c20420` in an emulator on the v0.1.3 rows, with the A7 IV's feature index, gives the same visible set as the
 camera, and DCI hidden.
 
@@ -95,8 +102,20 @@ items 34 and 39–42, options 139–141 and 182–209. If DCI doesn't appear, it
   setting is what Sony checks for.
 
 The emulator run on the composed `appFw.so` shows 141 and the five frame rates visible, every other row unchanged.
-Not covered offline: whether the Rec Frame Rate item (42) itself shows once its rows do.
-### Camera test (`alpha-dci-0.2`)
+On the camera: DCI listed in File Format but greyed out.
+
+### `alpha-dci-0.3`
+
+`alpha-dci-0.2` plus the A7 IV flag in the DCI Rec Frame Rate leaf (`+0x52` set to 1). The edit step now takes leaves
+(named by title) as well as rows (`layout.json` `menu_edits`, `_edit_menu_records`). It also drops the `0x1c08bc0`
+hook: that check takes an option alias, so its answer for "item 42" was about option 42 (Lossless Comp (L), already
+shown), and its `dci.item` lines were mislabelled. The emulator on the composed `appFw.so` passes the item check
+for item 42 and the row check for DCI and its five frame rates, and changes nothing else.
+
+If DCI is still greyed out, the next suspects are Sony's run-time availability rules for File Format, such as
+`PRM_HAITA_setting_file_format_system_architecture` (it names DCI with the A7 IV's `IPSX` architecture) and
+`PRM_license_type_dci4k24p_available`; the log's `dci.option 141` value of setting `0x2530` helps tell them apart.
+### Camera test (`alpha-dci-0.3`)
 
 1. In movie mode, open **MENU > Shooting > Image Quality > File Format**: is **XAVC S-I DCI 4K** listed?
 2. Choose it. In **Movie Settings > Rec Frame Rate**: 24p and 30p on NTSC, 25p on PAL?
