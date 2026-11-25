@@ -1,0 +1,313 @@
+{
+ "schema": 1,
+ "what": "Open gate on Erlla custom firmware v0.1.3: exact inputs, the new appFw.so sections, the stock functions and hooks the module uses, and the camera constants og_config.h is generated from.",
+ "base_package": {
+  "name": "BODYDATA.DAT (A7M4-ToolKit-v0.1.3)",
+  "sha256": "cfb7929594f3f0a770b9fbecaff1269cd945bc0932e3ddbabf73050f8eda475f",
+  "plaintext_sha256": "76f6dba012803a425bc0eac4629c398e21b4d9c89971832b2b820c110f8b9245"
+ },
+ "inputs": {
+  "nflasha15:lib/appFw.so": "c5f9bc7c6e0401b92a3b244122f3e013f61db4ae0ba2e423f02b2760adccf5fc",
+  "nflasha15:lib/libmpr.so": "cdce68c65813c8492a2268ec7364276d6f4e54495d5d8b0bacfeaf4d96cc708f",
+  "nflasha8:CPAPP-B.BIN": "cebf825e159fbf6974dbbf95a5e987d18b7db8526a98a96130257a2b808ae5da",
+  "nflasha8:DMMCFG.BIN": "7e7c09a3bb6922d5a1e5cfbddd29600b2fbc709264ac40bbde35b3f5ea2c54fd",
+  "nflasha3:av-cam.bin": "3e881a3d9db8644c63a6d9fb9723d04c024d8e17b670c0d1635cd020459dd49f"
+ },
+ "designs": {
+  "dmmwb4688_v1": "db23bd7fba49279264b91e56f1f0316a9cfd2e3fa2056a7c4e48918e8d3a44e5",
+  "ogsq_v3": "b8794fead76c658774521ea18af46d872d89bc6034f665279dc08b73ec3d4b2e",
+  "ogsq880_v1": "c7a09823b012e54cc04aa214905f4229b5e8dc9c08e40fa4b8865251ae4058f0",
+  "og57n_v1": "6b2e6ac9529d29a86422829b9e9a83b7cc87672821fead86cdbce0f5d40c1a84",
+  "og57n880_v1": "c61721025eb5e457bfb01daf617015fc3d2c6888f94806b8b72add78c1edb7d2",
+  "outsz2560_v1": "dd4aa30e78302f81a682fe357068dd7dee8675f74b20866080ea4cc66061c075",
+  "og57cp_v3": "b0f521921fa7c21d18e6779d8d5a892f4d8d1b3acce84b5272eb008e39e16693",
+  "ogfile2560_hs_s_v2": "728bbc2e7899c4848868dfea3373de53d115d7e13226bbea1b578fe71f74263c",
+  "ogfile57r300m1_v4": "a73b8b69b68481f7065be1f3c83d8a827dd28fb2606926506615de77ff0adfad",
+  "lcdfill_v2": "01e08e55727d793ed94c9bc5e052a68442668b63d531df3f0902cbb5d505aaac"
+ },
+ "compiler": {
+  "name": "Zig 0.15.2 aarch64-macos (ziglang.org official build; tarball SHA-256 from download/index.json, minisign signature verified with the Zig release key)",
+  "tarball": "zig-aarch64-macos-0.15.2.tar.xz",
+  "tarball_sha256": "3cc2bab367e185cdfb27501c4b30b1b0653c28d9f73df8dc91488e66ece5fa6b",
+  "sha256": "c65cd34917923f575448cc0603dd7c2326da0af0e5c323043d090662dcdf351c"
+ },
+ "sources": {
+  "og.c": "d3487920508904dfd4295200dcb52fdb3781408e96579bbbfe06ee32e4cfc262",
+  "og_reconcile.c": "56efb86ea61ec2c5bbe02604e8beefd9bb7e8123659da8eb9f9d85d24e3c5322",
+  "og_mem.c": "aea4f61135959ae1defdb1ff01c18aba16369dabd10857b52a46cff6ff6bcc25",
+  "og_util.c": "caf8fdf9e3f29420f44570a22cc0f7167c8a65c01124e529e246615d485e2d47",
+  "og_menu.c": "cbf1561aab8386408ad4fa7a7f8c29212aebb8eeb2ede735097d207800bc2e39",
+  "og_entry.S": "bb3b1e1ce81ba7aa905b25827627ce5462a714cef81df628fbce2fcd5899004b",
+  "og_sites.S": "1657b32224cdc6e7d319550bc944486e03552b37a2f33d4da04143ea8795978d",
+  "og.h": "747613c420a0b9af624a3fb0d7cc2fca1343349dc86477427f775b7161fd59ae",
+  "og_internal.h": "cd6327a82a0479c5543fae75a3d27af9df80ffa6911e7ef3826ed1e49004ef70",
+  "og_image.h": "feacf8160b1b28d0def68d423ad2a05a148f4c0ada83366a12a77d9bcd483b91",
+  "og_sys.h": "d9376106c89f29fea29f2d374ef87b5dc30692f10920b5c8e18d7471b9d6db8a",
+  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6"
+ },
+ "module": {
+  "text_bytes": 46444,
+  "text_sha256": "d991841ac0634ce27d6082743ab052fcfff111df05bdd036db058f333040fd9b",
+  "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
+ },
+ "appfw": {
+  "input_bytes": 99221508,
+  "free_gap": {
+   "file_offset": "0x5e72500",
+   "end": "0x5e80000",
+   "bytes": 56064
+  },
+  "program_headers": {
+   "file_offset": "0x5e80000",
+   "entries": 15,
+   "free_entries": 3
+  },
+  "rx": {
+   "va": "0x9063000",
+   "file_offset": "0x5e73000",
+   "max_bytes": "0xc000"
+  },
+  "rw": {
+   "va": "0x907f000",
+   "file_offset": "0x5e7f000",
+   "max_bytes": "0x1000"
+  }
+ },
+ "stock_functions": {
+  "dlsym": "0x17166a0",
+  "native_mode": "0x28ecdf8"
+ },
+ "hooks": [
+  {
+   "va": "0x1ddab68",
+   "previous_target": "0x9012bd8",
+   "previous_symbol": "hook_first_previous",
+   "entry": "og_hook_first",
+   "what": "first shooting-screen presenter (585 widgets): BL to the aspect feature's registration wrapper (stock 6.02: blr x8)",
+   "kind": "bl"
+  },
+  {
+   "va": "0x1e56b2c",
+   "previous_target": "0x9012ce4",
+   "previous_symbol": "hook_second_previous",
+   "entry": "og_hook_second",
+   "what": "second shooting-screen presenter (442 widgets): BL to the aspect feature's registration wrapper (stock 6.02: blr x8)",
+   "kind": "bl"
+  },
+  {
+   "va": "0x1c14e6c",
+   "kind": "b",
+   "previous_target": "0x8fb877c",
+   "previous_symbol": "og_menu_previous_disabled",
+   "entry": "og_menu_disabled",
+   "what": "menu-item disabled check (w0 = mid, 1 = disabled: callers such as 0x1ba807c then show the 'currently disabled' caution through 0x1c14efc and do not open the item), first instruction: B to custom sounds' Volume filter (stock 6.02: stp x29, x30, [sp, #-0x20]!)"
+  }
+ ],
+ "camera": {
+  "dmm_symbols": {
+   "alloc": "_Z9dmm_allocjPj",
+   "free": "_Z8dmm_freej",
+   "dma": "sen_dma_transfer"
+  },
+  "dmm_buffer_bytes": "0x1000",
+  "dmm_phys_min": "0x400000000",
+  "dmm_phys_end": "0x500000000",
+  "avcam_phys": "0x401000000",
+  "avcam_map_offset": "0x381000",
+  "avcam_map_bytes": "0x3f000",
+  "dial_movie": 3,
+  "evidence": [
+   "libJit_level5_ogsq_v3.so: dmm_alloc(0x1000) at 0x529c, buffer range checks at 0x55e8, /dev/mem O_RDWR|O_SYNC at 0x5610, sen_dma_transfer(0, cp, phys, n) at 0x57e8 and (1, phys, cp, n) at 0x8050",
+   "libJit_level19_ogfile57r300_v1.so: /dev/mem O_RDWR at 0x4a50, mmap 0x3f000 at phys 0x401381000 at 0x4a80, 'av-cam.bin at physical' 0x401000000 at 0x526c, pread64 of /dev/mem at phys 0x401000000 + offset (0x5a34, 0x829c), /proc/self/maps libmpr.so offset-0 line (0x4b90..0x4ee8), /proc/self/mem pwrite64 at 0x805c",
+   "libJit_level19_ogfile57r300m1_v4.so: the same system calls as ogfile57r300_v1 and no cache maintenance; its libmpr.so code sites (first PT_LOAD, R+X, 0x0..0x2ea010) go through the same /proc/self/mem pwrite64 (0x90d0) as its data sites",
+   "lcdcycle_v6 cave (evidence/cave_v6.dis): native_mode()[0] == 3 is movie; dlsym(0, ...) of the three libsencore symbols"
+  ]
+ },
+ "menu": {
+  "what": "The Open Gate setting takes over the custom firmware's Custom Shutter Sound page (mid 1592) and its switch (mid 1593): the page is renamed Open Gate and listed on MENU > Shooting > Media; both sound pages leave Shooting > Shutter/Silent; the switch keeps only itself on the page, gets a third option row and its callbacks point at og_menu.c. Its mids and option ids are the custom firmware's own, already in every native map and accepted by its id filters (supported/mapped 0x8f900a0/0x8f900b8 for 1592..1597, apply skip 0x8f900d0, option ids 5607..5630 at 0x8fa1000). compose_ap checks every old value here in v0.1.3 before writing.",
+  "page_mid": 1592,
+  "mid": 1593,
+  "alias_base": 5607,
+  "text": {
+   "page": "0x0200ab5c",
+   "title": "0x0200ab5f",
+   "off": "0x0200a00f",
+   "uhd_32": "0x0200ab61",
+   "k57_32": "0x0200ab62"
+  },
+  "groups": {
+   "what": "menu groups: 16-byte header {id, title, count, 0} and 30 entries {u64 mid, u64 leaf, u64 page}",
+   "media": {
+    "va": "0x50fc298",
+    "header": "01000000576000020400000000000000",
+    "mids": [
+     188,
+     189,
+     193,
+     194
+    ]
+   },
+   "shutter_silent": {
+    "va": "0x50fd3d8",
+    "header": "070000007c6000020d00000000000000",
+    "mids": [
+     325,
+     326,
+     333,
+     335,
+     336,
+     337,
+     338,
+     339,
+     340,
+     342,
+     343,
+     1592,
+     1595
+    ]
+   }
+  },
+  "pages": {
+   "what": "the sound page records: 'listed' is what a group entry points at, 'live' what the page map (0x8fc0a60, registrar 0x1cd148c) holds; +0x60 1, +0x64 child count, children {u64 mid, leaf} from +0x70",
+   "shutter": {
+    "listed": "0x8fc0400",
+    "live": "0x8ff8000",
+    "children": [
+     [
+      1593,
+      1594
+     ],
+     [
+      1593,
+      1594,
+      1598
+     ]
+    ]
+   },
+   "focus": {
+    "listed": "0x8fc0710",
+    "live": "0x8ff86e0"
+   }
+  },
+  "leaf": {
+   "va": "0x8fc0490",
+   "options": 2,
+   "rows": "0x8fc0610",
+   "help": "0x02008894",
+   "what": "the switch's leaf (0xc0): +0x0c help, +0x54 option count, +0x58 rows (contiguous, 0x80 each)"
+  },
+  "rows": [
+   {
+    "va": "0x8fc0610",
+    "alias": 5607,
+    "text": "off",
+    "was_text": "0x0200a024"
+   },
+   {
+    "va": "0x8fc0690",
+    "alias": 5608,
+    "text": "uhd_32",
+    "was_text": "0x0200a00f"
+   },
+   {
+    "va": "0x8fc0710",
+    "alias": 5609,
+    "text": "k57_32",
+    "from": "0x8fc0920",
+    "row_id": "0x001203f0",
+    "what": "new: the focus switch's first row (alias 5609), moved after the other two over the listed focus page's header, which only the Shutter/Silent entry pointed at"
+   }
+  ],
+  "row_fields": {
+   "what": "+0x00/+0x04 alias, +0x08 text, +0x10 help (= text, as native rows without help), +0x20/+0x24 images (none, as native text rows), +0x34 value, +0x74 row id",
+   "text": "0x08",
+   "help": "0x10",
+   "images": "0x20",
+   "value": "0x34",
+   "row_id": "0x74"
+  },
+  "parent_pair": {
+   "va": "0x8f91c80",
+   "old": [
+    5609,
+    1596
+   ],
+   "new": [
+    5609,
+    1593
+   ],
+   "what": "option-to-leaf pair the custom firmware registers (0x8f91c28, registrar 0x1cd1934)"
+  },
+  "relocations": {
+   "what": "R_AARCH64_RELATIVE entries changed in place (r_offset, addend); a symbol name is a module symbol. Entries moved to the Media slot's page field duplicate its own and leave no stale pointer behind.",
+   "retarget": [
+    {
+     "r_offset": "0x50fd500",
+     "addend": "0x8fc0400",
+     "to": "0x50fc318",
+     "new": "0x8fc0400",
+     "what": "Shutter/Silent entry 11 (1592) page -> Media entry 4 page"
+    },
+    {
+     "r_offset": "0x50fd518",
+     "addend": "0x8fc0710",
+     "to": "0x50fc318",
+     "new": "0x8fc0400",
+     "what": "Shutter/Silent entry 12 (1595) page, now unused"
+    },
+    {
+     "r_offset": "0x8fc0730",
+     "addend": "0x1c9efbc",
+     "to": "0x50fc318",
+     "new": "0x8fc0400",
+     "what": "listed focus page +0x20, now inside the third row"
+    },
+    {
+     "r_offset": "0x8fc0788",
+     "addend": "0x8fc07a0",
+     "to": "0x50fc318",
+     "new": "0x8fc0400",
+     "what": "listed focus page child 1596, now inside the third row"
+    },
+    {
+     "r_offset": "0x8fc0508",
+     "addend": "0x8f97f60",
+     "to": "0x8fc0508",
+     "new": "og_menu_getter",
+     "what": "switch leaf +0x78 getter"
+    },
+    {
+     "r_offset": "0x8fc0510",
+     "addend": "0x8f980d8",
+     "to": "0x8fc0510",
+     "new": "og_menu_setter",
+     "what": "switch leaf +0x80 setter"
+    },
+    {
+     "r_offset": "0x8fc0518",
+     "addend": "0x8fb9400",
+     "to": "0x8fc0518",
+     "new": "og_menu_commit",
+     "what": "switch leaf +0x88 commit"
+    },
+    {
+     "r_offset": "0x8fc0aa8",
+     "addend": "0x8fc0920",
+     "to": "0x8fc0aa8",
+     "new": "0x8fc0710",
+     "what": "option map entry 5609 -> the third row"
+    }
+   ]
+  },
+  "strings": {
+   "what": "68 horizontal/vertical UXC banks: the sound page's own texts are rewritten in place (same record, NUL padded); nothing else changes",
+   "banks": 68,
+   "replace": {
+    "0x0200ab5c": "Open Gate",
+    "0x0200ab5f": "Mode",
+    "0x0200ab61": "4K 3:2",
+    "0x0200ab62": "5.7K 3:2"
+   }
+  }
+ }
+}

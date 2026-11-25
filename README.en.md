@@ -29,7 +29,7 @@
 > - **[α7 IV filter library](https://erlla.github.io/sony-a7m4-custom-firmware/)** · Browse Fujifilm, Ricoh, Kodak and Leica looks. Download each look as a camera JSON or Lightroom XMP file and check its mean and 95th-percentile ΔE00 and update date.
 > - **[α7 IV sound library](https://erlla.github.io/sony-a7m4-custom-firmware/sounds.html)** · Preview and download WAV files for custom shutter and focus sounds.
 
-English · [中文](README.md)
+English · [中文](README.zh-CN.md)
 
 **The installation baseline is a Sony ILCE-7M4 (A7 IV / A7M4) running official Sony firmware V6.02 before installation.**
 

@@ -1,0 +1,91 @@
+{
+ "schema": 1,
+ "what": "The 26 bytes of the stored drive-parameter record that step 2 (ogsq_v3 / og57n_v1, PAL: ogsq880_v1 / og57n880_v1) changes. Identical for 4K and 5.7K within a family.",
+ "source": "ArcaneLantern/a7iv-open-gate-test libJit_level5_{ogsq_v3,og57n_v1,ogsq880_v1,og57n880_v1}.so: old/new/offset tables read from the code that builds the site record (adr x9 / adrp+add x11 / adrp+add x9 before 'mov w8,#0x1a').",
+ "locator": {
+  "root_cp_va": "0x12b9cc0",
+  "root_read_bytes": 64,
+  "p_field": "0x20",
+  "q_field_in_p": "0x684",
+  "count_field_in_q": "0x4",
+  "count_range": [
+   1,
+   64
+  ],
+  "mode_list_field_in_q": "0x8",
+  "records_field_in_q": "0x10",
+  "record_bytes": 348,
+  "cp_va_range": [
+   "0x108000",
+   "0xffff978"
+  ]
+ },
+ "families": {
+  "ntsc": {
+   "drive_mode": "0x8c0",
+   "offsets_in_record": [
+    6,
+    7,
+    94,
+    98,
+    99,
+    102,
+    136,
+    184,
+    185,
+    186,
+    230,
+    232,
+    233,
+    234,
+    236,
+    237,
+    242,
+    243,
+    254,
+    255,
+    318,
+    319,
+    332,
+    336,
+    342,
+    343
+   ],
+   "old": "010102660f025108aa033dcc1a3dcc1a6e016e01db078d8d9301",
+   "new": "1b200840120861ca160463c21f63c21f000000004e09a9a91300"
+  },
+  "pal": {
+   "drive_mode": "0x880",
+   "offsets_in_record": [
+    6,
+    7,
+    94,
+    98,
+    99,
+    102,
+    136,
+    184,
+    185,
+    186,
+    230,
+    232,
+    233,
+    234,
+    236,
+    237,
+    242,
+    243,
+    254,
+    255,
+    318,
+    319,
+    332,
+    336,
+    342,
+    343
+   ],
+   "old": "010102660f025198a7033cba1a3cba1a6e016e01db078d8d9301",
+   "new": "1b20084012086112140462ad1f62ad1f000000004e09a8a81300"
+  }
+ }
+}

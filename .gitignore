@@ -34,3 +34,6 @@ sessions/
 !keys/published/A7M4_updater_public.pem
 !fastboot/assets/fastboot.bin
 !fastboot/assets/uart_boot.ino.uf2
+
+# open-gate: generated site image (a7m4/open_gate_sites.py)
+native/open-gate/og_sites.bin

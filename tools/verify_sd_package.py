@@ -124,7 +124,10 @@ def verify(dat, plain, public_pem, warm_boot_marker=b"WBI3"):
                 need(name not in destination, "Duplicate checksum row: " + name)
                 destination.append(name)
         templates = {name for name in members if name.startswith("0110_backup/") and name.endswith(".bin")}
-        need(len(templates) == 32 and set(backup_checked) == templates, "Incomplete backup template CRC manifest")
+        # Every .bin template must have a checked CRC row. Other backup rows (v0.1.3 adds MainDest.txt) are CRC-checked
+        # above like the rest, but are not templates.
+        checked_templates = {name for name in backup_checked if name.endswith(".bin")}
+        need(len(templates) == 32 and checked_templates == templates, "Incomplete backup template CRC manifest")
         position, _ = members["0700_part_image/dev/nflasha5"]
         reference.seek(position)
         need(exact(reference, 4) == warm_boot_marker, "Warm-boot marker")
