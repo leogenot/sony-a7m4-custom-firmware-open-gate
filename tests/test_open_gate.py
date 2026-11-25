@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 from a7m4.common import ToolError
-from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _linker_script, _uxc_records, _uxc_texts,
-                            build, compile_module, compose_ap)
+from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _linker_script, _lut_labels_header,
+                            _uxc_records, _uxc_texts, build, compile_module, compose_ap)
 from a7m4.open_gate_sites import (_CP_IMAGE_VA, _NATIVE, PRESETS, _ROOT, STEP1, _STORED_RECORD, Family, Mode, Run, SiteImage,
                                   Space, check_stock, compile_image, dmmcfg_edits, _layout, load_design, runs_of)
 
@@ -716,7 +716,7 @@ def test_takeover_refuses_another_layout(v013):
 def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(composed, v013):
     module, out = composed
     hooks = _layout()["hooks"]
-    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"]
+    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"] + ["og_lut_text_bind"] * 15
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
@@ -783,3 +783,100 @@ def test_edit_bank_refuses_what_it_cannot_do():
         _edit_bank(data, strings | {"replace": {"0x0200ab51": "Open Gate"}})
     with pytest.raises(ToolError, match="does not fit"):
         _edit_bank(data, strings | {"replace": {"0x0200ab5f": "A much longer label"}})
+
+
+# --- English LUT screens: og_lut.c and the LUT text binder's calls ------------------------------------------------------
+
+LUT_LABELS = json.loads((_NATIVE / "lut_labels.json").read_text("utf-8"))
+LUT_PAIRS = LUT_LABELS["erlla"]["labels"] + LUT_LABELS["added"]["labels"]
+LUT_BINDER = 0x9000d54
+LUT_CODE = (0x9000000, 0x9030000)   # the custom firmware's LUT model and LUT GUI code segments
+
+
+def test_lut_labels_hold_erllas_list_and_compile_to_one_literal():
+    assert len(LUT_LABELS["erlla"]["labels"]) == 50 and len(LUT_LABELS["added"]["labels"]) == 16
+    assert ["自定义LUT", "Custom LUTs"] in LUT_PAIRS and ["选择存储卡", "Select Card"] in LUT_PAIRS
+    header = _lut_labels_header(LUT_LABELS)
+    assert header.count("\\000") == 2 * len(LUT_PAIRS) and "/* Select Card */" in header
+    twice = json.loads(json.dumps(LUT_LABELS))
+    twice["added"]["labels"].append(["关", "Closed"])
+    with pytest.raises(ToolError, match="listed twice"):
+        _lut_labels_header(twice)
+    long = json.loads(json.dumps(LUT_LABELS))
+    long["added"]["labels"].append(["长", "x" * 129])
+    with pytest.raises(ToolError, match="not a text the binder takes"):
+        _lut_labels_header(long)
+
+
+@pytest.fixture(scope="module")
+def lut_host(tmp_path_factory):
+    clang = shutil.which("clang") or shutil.which("cc")
+    if not clang:
+        pytest.skip("no host C compiler")
+    tmp = tmp_path_factory.mktemp("og_lut_host")
+    (tmp / "og_lut_labels.h").write_text(_lut_labels_header(LUT_LABELS), "utf-8")
+    (tmp / "labels.tsv").write_text("".join(f"{zh}\t{en}\n" for zh, en in LUT_PAIRS), "utf-8")
+    binary = tmp / "og_lut_host"
+    subprocess.run([clang, "-std=c11", "-D_DEFAULT_SOURCE", "-O1", "-g", "-Wall", "-Wextra", "-Werror", "-fno-strict-aliasing",
+                    "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-I", str(_NATIVE), "-I", str(tmp),
+                    str(_ROOT / "tests/native/og_lut_host.c"), str(_NATIVE / "og_lut.c"), "-o", str(binary)], check=True)
+    result = subprocess.run([str(binary), str(tmp / "labels.tsv")], capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return result.stdout.splitlines()
+
+
+def test_og_lut_on_the_host(lut_host):
+    assert not [line for line in lut_host if line.startswith("FAIL")]
+    for check in ("every label binds its English, NUL included", "the widget, its size and the resource are passed on",
+                  "a label inside a larger buffer binds its English", "a LUT name goes to the binder unchanged",
+                  "a percentage goes to the binder unchanged", "a text that only starts with a label is unchanged",
+                  "a label cut short by text_bytes is unchanged", "an empty length is unchanged", "no text is unchanged",
+                  "the lookup answers 0 for no label"):
+        assert f"ok {check}" in lut_host, check
+
+
+def branches_to(img, target):
+    """VA and kind of every B/BL in img's executable segments that lands on target."""
+    import numpy as np
+    found = []
+    for s in img.loads:
+        if not s["p_flags"] & 1:
+            continue
+        words = np.frombuffer(img.data, "<u4", count=s["p_filesz"] // 4, offset=s["p_offset"]).astype(np.int64)
+        op, imm = words & 0xfc000000, words & 0x3ffffff
+        pc = s["p_vaddr"] + 4 * np.arange(len(words))
+        hit = ((op == 0x94000000) | (op == 0x14000000)) & (pc + 4 * (imm - ((imm & 0x2000000) << 1)) == target)
+        found += [(int(pc[i]), "bl" if op[i] == 0x94000000 else "b") for i in np.flatnonzero(hit)]
+    return found
+
+
+@needs_appfw
+def test_v013_lut_screens_bind_text_only_through_the_hooked_calls(v013):
+    """The binder's 15 callers are the hooks; nothing else branches to it or holds its address."""
+    hooked = [int(h["va"], 16) for h in _layout()["hooks"] if h["entry"] == "og_lut_text_bind"]
+    assert branches_to(v013, LUT_BINDER) == [(va, "bl") for va in hooked]
+    assert v013.data.count(struct.pack("<Q", LUT_BINDER)) == 0 and LUT_BINDER not in {int(x) for x in v013.rela[:, 2]}
+    assert v013.u32(LUT_BINDER + 0x14) == 0x7119603f   # cmp w1, #0x658: the binder's parameter-size check
+
+
+@needs_appfw
+def test_v013_lut_code_has_no_chinese_text_without_english(v013):
+    import re
+    labels = {zh for zh, _ in LUT_PAIRS}
+    texts = set()
+    for va in LUT_CODE:
+        s = next(s for s in v013.loads if s["p_vaddr"] == va)
+        for m in re.finditer(rb"(?:[\x20-\x7e]|[\xe0-\xef][\x80-\xbf]{2})+\x00", v013.data[s["p_offset"]:s["p_offset"] + s["p_filesz"]]):
+            text = m.group()[:-1].decode("utf-8", "replace")
+            if any("\u2e80" <= c <= "\u9fff" or "\uff00" <= c <= "\uffef" for c in text):
+                texts.add(text)
+    assert len(texts) == 65 and texts <= labels
+
+
+def test_composed_lut_calls_reach_og_lut_and_it_ends_in_the_binder(composed):
+    module, out = composed
+    entry = module.symbols["og_lut_text_bind"]
+    (tail, kind), = branches_to(out, LUT_BINDER)
+    assert kind == "b" and entry < tail < entry + 0x100   # og_lut_text_bind's tail call is the binder's only caller
+    hooked = [int(h["va"], 16) for h in _layout()["hooks"] if h["entry"] == "og_lut_text_bind"]
+    assert branches_to(out, entry) == [(va, "bl") for va in hooked]
