@@ -4,7 +4,8 @@
 
 Freestanding AArch64 C linked at fixed addresses into a new section of v0.1.3's `appFw.so`. Other code calls only
 [`og.h`](og.h): `og_power_on()` (shooting-screen hook), `og_select(mode)` and `og_selected()` (the Open Gate
-setting, [`og_menu.h`](og_menu.h)).
+setting, [`og_menu.h`](og_menu.h)). The same module also puts the custom LUT screens in English
+([`og_lut.h`](og_lut.h)).
 
 ## Files
 
@@ -14,23 +15,26 @@ setting, [`og_menu.h`](og_menu.h)).
 | `og_reconcile.c` | The order of work over the site image: check every site, undo, apply, roll back |
 | `og_mem.c` | The four memory targets behind `og_mem_read` / `og_mem_write`, and NTSC/PAL detection |
 | `og_entry.S` | The two hook trampolines |
-| `og_menu.c` | The Open Gate setting's callbacks: getter, setter, commit, and the two "enabled" checks |
+| `og_menu.c` | The Open Gate setting's callbacks: getter, setter, commit, and the "disabled" check |
+| `og_lut.c`, `lut_labels.json` | English LUT screens: the LUT text binder's 15 calls come here, and a Chinese label is bound as its English |
 | `og_image.h`, `og_sys.h`, `og_util.c` | Site-image accessors; raw Linux system calls; `memset`/`memcpy` for the compiler |
 | `og_sites.S` | `.incbin` of the generated `og_sites.bin` ([format](../../a7m4/open_gate_sites.py)); never committed |
 
 `a7m4/open_gate.py` generates `og_config.h` (camera constants from `layout.json` and `stored_record.json`) and the
 linker script, links with the pinned Zig, refuses relocations, undefined symbols and any section but `.text`/`.bss`,
-and pins every source here by SHA-256 in `layout.json`.
+and pins every source here by SHA-256 in `layout.json`. It also generates `og_lut_labels.h`, the labels as one
+inline literal.
 
 ## Layout in appFw.so
 
 | Piece | VA | File offset | Size |
 | --- | --- | --- | --- |
-| Code, strings, site image (R-X) | `0x9063000` | `0x5e73000` | 46,444 of 0xc000 bytes |
+| Code, strings, site image (R-X) | `0x9063000` | `0x5e73000` | 48,764 of 0xc000 bytes |
 | State (RW, file-backed zeros) | `0x907f000` | `0x5e7f000` | 1,700 of 0x1000 bytes |
 | Program headers | 15 -> 17 entries in place at `0x5e80000`; `e_phnum` and `PT_PHDR` sizes updated | | |
 | Hooks | `0x1ddab68`, `0x1e56b2c`: `bl` to the aspect wrappers `0x9012bd8` / `0x9012ce4` -> `bl og_hook_first/second` | | |
 | Menu hook | `0x1c14e6c`: `b 0x8fb877c` (custom sounds' Volume filter) -> `b og_menu_disabled` | | |
+| LUT text hooks | the 15 `bl 0x9000d54` (the LUT text binder, `lut_text_v617_bind`) in the LUT code -> `bl og_lut_text_bind`, which tail-calls the binder | | |
 | Menu | the custom sound page's records and two menu groups, and eight relocations changed in place, below | | |
 
 Both sections sit in the file's existing zero gap (`0x5e72500..0x5e80000`); the file keeps its length. Each hook
