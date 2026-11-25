@@ -380,15 +380,19 @@ def test_not_ready_writes_nothing(camera):
 
 
 def test_select_persists_and_power_on_restores(host, image, files, setting):
+    """[PROBE-movie] Both entry points apply on movie too, each behind the guard file, which is gone afterwards."""
     first = Camera(host, files, Family.NTSC, image)
     assert first.send("selected") == ["mode", "0"]
     assert first.send("power_on") == ["reads", "0", "writes", "0"]   # Off and nothing applied: no memory access
     assert first.send("dial 3") == ["ok"]
-    assert first.status("select 1")[0] == WRONG_DIAL
-    assert first.send("dial 0") == ["ok"]
-    assert first.status("select 1")[0] == OK
+    assert first.status("select 1")[0] == OK                         # movie: applied
     assert first.send("selected") == ["mode", "1"]
     assert first.diff() == state_of(Mode.UHD_32, Family.NTSC)
+    assert not (setting / "open_gate.try").exists()
+    assert first.send("dial 0") == ["ok"]
+    assert first.status("select 2")[0] == OK                         # stills: as before
+    assert first.diff() == state_of(Mode.K57_32, Family.NTSC)
+    assert first.status("select 1")[0] == OK
     record = (setting / "open_gate.dat").read_bytes()
     assert record == struct.pack("<4sIII", b"OGT1", 1, 1, 0xfffffffe)
     assert not (setting / "open_gate.tmp").exists()
@@ -396,15 +400,26 @@ def test_select_persists_and_power_on_restores(host, image, files, setting):
 
     second = Camera(host, files, Family.NTSC, image)
     assert second.send("dial 3") == ["ok"]
-    assert second.send("power_on")[3] == "0"        # movie: nothing written
-    assert second.diff() == {}
-    assert second.send("dial 0") == ["ok"]
-    second.send("power_on")
+    second.send("power_on")                                          # start-up on movie: applied
     assert second.diff() == state_of(Mode.UHD_32, Family.NTSC)
-    assert second.send("power_on")[3] == "0"        # already in place: reads only
+    assert second.send("power_on")[3] == "0"                         # already in place: reads only
+    assert not (setting / "open_gate.try").exists()
     assert second.status("select 0")[0] == OK
     assert second.diff() == {} and second.send("load") == ["mode", "0"]
     second.close()
+
+
+def test_a_left_guard_file_starts_at_off(host, image, files, setting):
+    """[PROBE-movie] A guard file at the first load: the last movie apply never returned, so Off, saved, guard gone."""
+    (setting / "open_gate.dat").write_bytes(struct.pack("<4sIII", b"OGT1", 1, 2, 0xfffffffd))
+    (setting / "open_gate.try").write_bytes(b"")
+    cam = Camera(host, files, Family.NTSC, image)
+    assert cam.send("dial 3") == ["ok"]
+    assert cam.send("power_on") == ["reads", "0", "writes", "0"]
+    assert cam.send("selected") == ["mode", "0"] and cam.diff() == {}
+    assert (setting / "open_gate.dat").read_bytes() == struct.pack("<4sIII", b"OGT1", 1, 0, 0xffffffff)
+    assert not (setting / "open_gate.try").exists()
+    cam.close()
 
 
 def test_bad_record_files_mean_off(host, image, files, setting):
@@ -552,7 +567,7 @@ def test_og_menu_callbacks_on_the_host(menu_host):
     for check in ("getter reflects og_selected", "setter stages the browsed value", "commit selects the option's mode",
                   "commit reports any other status as failure", "a failed commit drops the staged value",
                   "commit refuses an alias below the item's", "commit refuses an alias above the item's",
-                  "disabled is 1 exactly in movie", "disabled is 0 without a dial",
+                  "disabled is 0 in every dial position", "disabled is 0 without a dial",
                   "the item never reaches the previous check", "other mids chain to the previous check"):
         assert f"ok {check}" in lines, check
     assert lines.count("ok commit reports any other status as failure") == 7   # OG_BUSY .. OG_NOT_SAVED
@@ -615,6 +630,7 @@ def test_composed_appfw_changes_only_the_listed_places(composed, v013):
     hooks = [v013.offset(int(h["va"], 16)) for h in _layout()["hooks"]]
     allowed = [(0x38, 0x3a), (0x5e73000, 0x5e73000 + len(module.text)), (0x5e80000, 0x5e80000 + 17 * 56)]
     allowed += [(at, at + 4) for at in hooks] + [(at, at + n) for at, n in takeover_places(v013)]
+    allowed += [(v013.offset(int(r["va"], 16)), v013.offset(int(r["va"], 16)) + 0x80) for r in _layout()["formats"]["rows"]]
     assert all(any(lo <= int(i) < hi for lo, hi in allowed) for i in differ)
     assert set(hooks) <= {int(i) & ~3 for i in differ}
     assert len(out.rela) == len(v013.rela)
@@ -695,7 +711,8 @@ def test_composed_relocations_change_only_the_listed_entries(composed, v013):
 def test_takeover_refuses_another_layout(v013):
     from a7m4.open_gate import _take_over_sound_page
     lay = _layout()
-    symbols = {"og_menu_getter": 0x9063000, "og_menu_setter": 0x9063010, "og_menu_commit": 0x9063020}
+    symbols = {"og_menu_getter": 0x9063000, "og_menu_setter": 0x9063010, "og_menu_commit": 0x9063020,
+               "og_formats_getter": 0x9063030, "og_formats_setter": 0x9063040, "og_formats_commit": 0x9063050}
     _take_over_sound_page(bytearray(v013.data), v013.data, v013.elf, v013.loads, symbols, lay)
     for va, message in ((MEDIA + 8, "Group"), (SILENT + 16 + 12 * 24 + 16, "two sound pages"), (PAGE + 0x64, "Sound page"),
                         (LEAF + 0x54, "switch leaf"), (0x8fc0920, "Row"), (ROWS + 0x80 + 8, "Row"),
@@ -716,7 +733,8 @@ def test_takeover_refuses_another_layout(v013):
 def test_composed_hooks_reach_the_module_and_chain_to_the_previous_heads(composed, v013):
     module, out = composed
     hooks = _layout()["hooks"]
-    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled"]
+    assert [h["entry"] for h in hooks] == ["og_hook_first", "og_hook_second", "og_menu_disabled",
+                                          "og_formats_resolve_option"]   # [FORMATS]
     for hook in hooks:
         va = int(hook["va"], 16)
         assert v013.branch(va) == (hook["kind"], int(hook["previous_target"], 16))
@@ -745,7 +763,7 @@ REPLACED = {int(k, 16): v for k, v in MENU["strings"]["replace"].items()}
 def test_every_bank_names_the_page_setting_and_options(banks):
     assert len(banks) == 68
     assert REPLACED == {TEXT["page"]: "Open Gate", TEXT["title"]: "Mode", TEXT["uhd_32"]: "4K 3:2",
-                        TEXT["k57_32"]: "5.7K 3:2"}
+                        TEXT["k57_32"]: "5.7K 3:2", 0x200ab5d: "4K 3:2 Open Gate", 0x200ab63: "5.7K 3:2 Open Gate"}
     for path, (old, new, evidence) in banks.items():
         before, after = _uxc_texts(old), _uxc_texts(new)
         assert len(new) == len(old), path
@@ -783,3 +801,67 @@ def test_edit_bank_refuses_what_it_cannot_do():
         _edit_bank(data, strings | {"replace": {"0x0200ab51": "Open Gate"}})
     with pytest.raises(ToolError, match="does not fit"):
         _edit_bank(data, strings | {"replace": {"0x0200ab5f": "A much longer label"}})
+
+
+# --- [FORMATS] open gate as File Format entries ------------------------------------------------------------------------
+
+FORMATS = _layout()["formats"]
+FF_LEAF = int(FORMATS["leaf"], 16)
+
+
+@needs_appfw
+def test_v013_holds_the_file_format_pieces_the_formats_build_uses(v013):
+    """File Format's leaf and callbacks, the two hidden rows it reuses, the HS 4K row they copy, the two texts it
+    overwrites (custom-sound texts no menu of this build reaches), and the 24p / 25p options it commits."""
+    assert v013.u32(FF_LEAF) == 0x200a466 and v013.relative(FF_LEAF + 0x58) == 0x4007570
+    assert [v013.relative(FF_LEAF + k) for k in (0x78, 0x80, 0x88)] == [0x1c34968, 0x1ca0f58, 0x1cd2f18]
+    for r in FORMATS["rows"]:
+        va = int(r["va"], 16)
+        assert (v013.u32(va), v013.u32(va + 8), v013.u32(va + 0x34)) == (r["alias"], int(r["was_text"], 16), r["was_value"])
+        assert not ((v013.rela[:, 0] >= va) & (v013.rela[:, 0] < va + 0x80)).any()
+    hs = int(FORMATS["copy_from"]["va"], 16)
+    assert (v013.u32(hs), v013.u32(hs + 8), v013.u32(hs + 0x34)) == (136, 0x200a467, 6)        # "XAVC HS 4K"
+    assert v013.u32(0x40078f0) == 137 and v013.u32(0x40078f0 + 0x34) == 7                       # XAVC S 4K
+    assert (v013.u32(0x405b570), v013.u32(0x405b578), v013.u32(0x405b5a4)) == (151, 0x200a1e8, 4)   # HS 4K 24p
+    assert (v013.u32(0x4057b70), v013.u32(0x4057b78), v013.u32(0x4057ba4)) == (161, 0x200a1e9, 3)   # S 4K 25p
+    assert v013.relative(0x5973e80 + 0x88) == v013.relative(0x596fe10 + 0x88) == 0x1cd7190        # shared rate commit
+
+
+def test_composed_file_format_takes_the_module_callbacks_and_rows(composed, v013):
+    module, out = composed
+    for k, name in ((0x78, "og_formats_getter"), (0x80, "og_formats_setter"), (0x88, "og_formats_commit")):
+        assert out.relative(FF_LEAF + k) == module.symbols[name]
+        assert struct.unpack("<Q", out.bytes(FF_LEAF + k, 8))[0] == module.symbols[name]
+    hs = v013.bytes(int(FORMATS["copy_from"]["va"], 16), 0x80)
+    for r in FORMATS["rows"]:
+        va = int(r["va"], 16)
+        row = out.bytes(va, 0x80)
+        changed = {k for k in range(0, 0x80, 4) if row[k:k + 4] != hs[k:k + 4]}
+        assert changed <= {0x00, 0x04, 0x08, 0x10, 0x34, 0x74}
+        assert (out.u32(va), out.u32(va + 4), out.u32(va + 8), out.u32(va + 0x10), out.u32(va + 0x34)) == \
+            (r["alias"], r["alias"], int(r["text"], 16), int(r["text"], 16), int(r["value"], 16))
+        assert out.u32(va + 0x74) == v013.u32(va + 0x74)
+    assert out.branch(0x1c18004) == ("b", module.symbols["og_formats_resolve_option"])
+    assert module.symbols["og_formats_previous_resolve_option"] == 0x8fa1000
+    values = [out.u32(0x4007570 + 0x80 * i + 0x34) for i in range(13)]
+    assert len(set(values)) == len(values)   # every File Format row has its own value
+
+
+@pytest.fixture(scope="module")
+def formats_host(tmp_path_factory):
+    clang = shutil.which("clang") or shutil.which("cc")
+    if not clang:
+        pytest.skip("no host C compiler")
+    tmp = tmp_path_factory.mktemp("og_formats_host")
+    binary = tmp / "og_formats_host"
+    subprocess.run([clang, "-std=c11", "-D_DEFAULT_SOURCE", "-O1", "-g", "-Wall", "-Wextra", "-Werror", "-fno-strict-aliasing",
+                    "-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-I", str(_NATIVE),
+                    str(_ROOT / "tests/native/og_formats_host.c"), str(_NATIVE / "og_formats.c"), "-o", str(binary)], check=True)
+    result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return result.stdout.splitlines()
+
+
+def test_og_formats_on_the_host(formats_host):
+    assert not [line for line in formats_host if line.startswith("FAIL")]
+    assert len([line for line in formats_host if line.startswith("ok ")]) == 19

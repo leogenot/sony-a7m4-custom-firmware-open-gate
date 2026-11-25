@@ -33,10 +33,12 @@ _PT_LOAD, _PT_PHDR, _PHDR = 1, 6, struct.Struct("<IIQQQQQQ")
 _R_RELATIVE = 1027
 _RELA = struct.Struct("<QQQ")   # Elf64_Rela {r_offset, r_info, r_addend}; also a menu group entry {mid, leaf, page}
 _GROUP_BYTES = 0x2e0            # menu group: 16-byte header {id, title, count, 0}, 30 entries of 24 bytes
-_SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_entry.S", "og_sites.S")
-_HEADERS = ("og.h", "og_internal.h", "og_image.h", "og_sys.h", "og_menu.h")
+_SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_diag.c", "og_formats.c", "og_entry.S",
+            "og_sites.S")   # [FORMATS] og_diag.c, og_formats.c
+_HEADERS = ("og.h", "og_internal.h", "og_image.h", "og_sys.h", "og_menu.h", "og_diag.h", "og_formats.h")
 _UXC_MAGIC, _UXC_ID_BIAS = b"uxc\x07", 0x1C000000
-_MENU_CALLBACKS = ("og_menu_getter", "og_menu_setter", "og_menu_commit")
+_MENU_CALLBACKS = ("og_menu_getter", "og_menu_setter", "og_menu_commit", "og_formats_getter", "og_formats_setter",
+                   "og_formats_commit")
 _CFLAGS = ("-target", "aarch64-freestanding-none", "-mcpu=generic-neon-fp_armv8", "-mgeneral-regs-only",
           "-mno-outline-atomics", "-mstrict-align", "-mbranch-protection=none", "-fpie", "-Os", "-g", "-std=c11",
           "-Wall", "-Wextra", "-Werror", "-ffreestanding", "-fno-builtin", "-fno-stack-protector",
@@ -94,7 +96,7 @@ def _config_header(lay: dict, record: dict) -> str:
 def _linker_script(lay: dict) -> str:
     ap = lay["appfw"]
     rx, rw = _int(ap["rx"]["va"]), _int(ap["rw"]["va"])
-    names = {"dlsym": lay["stock_functions"]["dlsym"], "native_mode": lay["stock_functions"]["native_mode"]}
+    names = dict(lay["stock_functions"])
     names |= {h["previous_symbol"]: h["previous_target"] for h in lay["hooks"]}
     return ("ENTRY(og_hook_first)\nSECTIONS {\n"
             f" .text {rx:#x} : {{ *(.text*) *(.rodata*) }}\n"
@@ -130,7 +132,7 @@ def compile_module(zig: Path, image: SiteImage, workdir: Path) -> Module:
     (workdir / "open_gate.ld").write_text(_linker_script(lay), "utf-8")
     elf_path = workdir / "open_gate.elf"
     # The link drops sections nothing reaches from the entry; every hook entry is reached only from appFw.so.
-    command = [str(zig), "cc", *_CFLAGS, "-Wl,-e,og_hook_first", *(f"-Wl,-u,{h['entry']}" for h in lay["hooks"]),
+    command = [str(zig), "cc", *_CFLAGS, "-Wl,-e,og_hook_first", *(f"-Wl,-u,{e}" for e in dict.fromkeys([h["entry"] for h in lay["hooks"]] + list(_MENU_CALLBACKS))),
                "-Wl,-T," + str(workdir / "open_gate.ld"),
                "-I", str(workdir), "-I", str(_NATIVE), *[str(_NATIVE / s) for s in _SOURCES], "-o", str(elf_path)]
     subprocess.run(command, check=True, cwd=workdir)
@@ -302,6 +304,31 @@ def _take_over_sound_page(out: bytearray, appfw: bytes, elf, loads, symbols: Map
         put(offset(new_at, 8), struct.pack("<Q", value))
 
 
+def _format_rows(out: bytearray, appfw: bytes, loads, layout: dict) -> None:
+    """[FORMATS] Two hidden File Format rows become the open-gate formats (layout.json "formats"): each is a copy of
+    the XAVC HS 4K row with its own alias, text (help too) and value; its row id stays. Old bytes are checked first."""
+    spec = layout["formats"]
+    source_va = _int(spec["copy_from"]["va"])
+    source = appfw[_file_offset(loads, source_va, 0x80):_file_offset(loads, source_va, 0x80) + 0x80]
+    old_source = struct.unpack_from("<32I", source)
+    require(old_source[0] == old_source[1] == spec["copy_from"]["alias"] and old_source[0x34 // 4] == spec["copy_from"]["value"],
+            "OG_FORMATS", "The XAVC HS 4K row is not the expected one")
+    for row in spec["rows"]:
+        va = _int(row["va"])
+        at = _file_offset(loads, va, 0x80)
+        old = struct.unpack_from("<32I", appfw, at)
+        require(old[0] == old[1] == row["alias"] and old[2] == _int(row["was_text"]) and old[0x34 // 4] == row["was_value"],
+                "OG_FORMATS", f"Row {va:#x} is not the expected one")
+        record = bytearray(source)
+        struct.pack_into("<II", record, 0, row["alias"], row["alias"])
+        struct.pack_into("<I", record, 0x08, _int(row["text"]))
+        struct.pack_into("<I", record, 0x10, _int(row["text"]))
+        struct.pack_into("<I", record, 0x34, _int(row["value"]))
+        struct.pack_into("<I", record, 0x74, old[0x74 // 4])
+        require(bytes(out[at:at + 0x80]) == appfw[at:at + 0x80], "OG_FORMATS", f"{va:#x} was already changed")
+        out[at:at + 0x80] = record
+
+
 def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
     """Place the module in appFw.so's zero gap, add its program headers and hooks, and turn the custom firmware's
     Custom Shutter Sound page into the Open Gate page on Shooting > Media; same length as the input."""
@@ -349,6 +376,7 @@ def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
                 f"{va:#x} does not hold the expected {hook['kind'].upper()}")
         out[at:at + 4] = _branch(va, module.symbols[hook["entry"]], link)
     _take_over_sound_page(out, appfw, elf, loads, module.symbols, layout)
+    _format_rows(out, appfw, loads, layout)
     result = bytes(out)
     require(len(result) == len(appfw), "OG_SIZE", "appFw.so changed size")
     check = ELFFile(io.BytesIO(result))

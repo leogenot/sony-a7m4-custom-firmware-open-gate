@@ -23,7 +23,6 @@
 #define HIDDEN __attribute__((visibility("hidden")))
 
 extern uint32_t og_menu_previous_disabled(uint32_t mid) HIDDEN;  /* the 0x1c14e6c chain's previous head */
-extern const volatile uint32_t *native_mode(void);             /* stock getter: OG_DIAL_MOVIE in movie */
 
 /* 0: nothing staged; otherwise the raw value the native setter staged while browsing, plus 1. */
 static uint32_t staged;
@@ -47,13 +46,7 @@ int og_menu_commit(uint32_t alias)
     return ok;
 }
 
-static uint32_t in_movie(void)
-{
-    const volatile uint32_t *dial = native_mode();
-    return dial && *dial == OG_DIAL_MOVIE;
-}
-
 uint32_t og_menu_disabled(uint32_t mid)
 {
-    return mid == OG_MENU_MID ? in_movie() : og_menu_previous_disabled(mid);
+    return mid == OG_MENU_MID ? 0 : og_menu_previous_disabled(mid);   /* [PROBE-movie] enabled on movie too */
 }

@@ -32,22 +32,26 @@
   "sha256": "c65cd34917923f575448cc0603dd7c2326da0af0e5c323043d090662dcdf351c"
  },
  "sources": {
-  "og.c": "d3487920508904dfd4295200dcb52fdb3781408e96579bbbfe06ee32e4cfc262",
+  "og.c": "bc44c5d7335b24d3fcbbe6fa08dcd6215a6f209aab74c4d2f598632b8eb9d538",
   "og_reconcile.c": "56efb86ea61ec2c5bbe02604e8beefd9bb7e8123659da8eb9f9d85d24e3c5322",
   "og_mem.c": "aea4f61135959ae1defdb1ff01c18aba16369dabd10857b52a46cff6ff6bcc25",
   "og_util.c": "caf8fdf9e3f29420f44570a22cc0f7167c8a65c01124e529e246615d485e2d47",
-  "og_menu.c": "cbf1561aab8386408ad4fa7a7f8c29212aebb8eeb2ede735097d207800bc2e39",
+  "og_menu.c": "a8342845ccc05cbd7b8edf55c8974715900f2ffca2952aead6dfe46c339c59f6",
   "og_entry.S": "bb3b1e1ce81ba7aa905b25827627ce5462a714cef81df628fbce2fcd5899004b",
   "og_sites.S": "1657b32224cdc6e7d319550bc944486e03552b37a2f33d4da04143ea8795978d",
   "og.h": "747613c420a0b9af624a3fb0d7cc2fca1343349dc86477427f775b7161fd59ae",
   "og_internal.h": "cd6327a82a0479c5543fae75a3d27af9df80ffa6911e7ef3826ed1e49004ef70",
   "og_image.h": "feacf8160b1b28d0def68d423ad2a05a148f4c0ada83366a12a77d9bcd483b91",
-  "og_sys.h": "d9376106c89f29fea29f2d374ef87b5dc30692f10920b5c8e18d7471b9d6db8a",
-  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6"
+  "og_sys.h": "58589976138ebb7c97e64a98761cdd189550e95fb6091e461d449acf6373fc49",
+  "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
+  "og_diag.c": "82aa4a79c2a78f00ec21386e46aa9ae9c46e9628f17869acae89904e66fc9a1e",
+  "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
+  "og_formats.c": "94002093708b4a7629087e29c3f3999f40598df227cc7f71f18d45a3bd85e807",
+  "og_formats.h": "25ef00982ed52fc8ab544c81f1466680dc70b3604251af6480a6dd4addc928b7"
  },
  "module": {
-  "text_bytes": 46444,
-  "text_sha256": "d991841ac0634ce27d6082743ab052fcfff111df05bdd036db058f333040fd9b",
+  "text_bytes": 48412,
+  "text_sha256": "17f1215a0dd4f79ad7315f302b7580261e5c364b65fb56ac29be576f5e0ac2fc",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -75,7 +79,11 @@
  },
  "stock_functions": {
   "dlsym": "0x17166a0",
-  "native_mode": "0x28ecdf8"
+  "native_mode": "0x28ecdf8",
+  "og_formats_previous_getter": "0x1c34968",
+  "og_formats_previous_setter": "0x1ca0f58",
+  "og_formats_previous_commit": "0x1cd2f18",
+  "og_formats_rate_commit": "0x1cd7190"
  },
  "hooks": [
   {
@@ -101,6 +109,14 @@
    "previous_symbol": "og_menu_previous_disabled",
    "entry": "og_menu_disabled",
    "what": "menu-item disabled check (w0 = mid, 1 = disabled: callers such as 0x1ba807c then show the 'currently disabled' caution through 0x1c14efc and do not open the item), first instruction: B to custom sounds' Volume filter (stock 6.02: stp x29, x30, [sp, #-0x20]!)"
+  },
+  {
+   "va": "0x1c18004",
+   "kind": "b",
+   "previous_target": "0x8fa1000",
+   "previous_symbol": "og_formats_previous_resolve_option",
+   "entry": "og_formats_resolve_option",
+   "what": "[FORMATS] menu option id resolution (w0 option id), first instruction: B to Erlla's alias filter (stock 6.02: stp x29, x30, [sp, #-0x20]!). Options 130, 131 (the open-gate formats) resolve to themselves; while open gate is on, the Rec Frame Rate options it doesn't record are hidden."
   }
  ],
  "camera": {
@@ -296,6 +312,27 @@
      "to": "0x8fc0aa8",
      "new": "0x8fc0710",
      "what": "option map entry 5609 -> the third row"
+    },
+    {
+     "r_offset": "0x594dfc0",
+     "addend": "0x1c34968",
+     "to": "0x594dfc0",
+     "new": "og_formats_getter",
+     "what": "[FORMATS] File Format leaf +0x78 getter"
+    },
+    {
+     "r_offset": "0x594dfc8",
+     "addend": "0x1ca0f58",
+     "to": "0x594dfc8",
+     "new": "og_formats_setter",
+     "what": "[FORMATS] File Format leaf +0x80 setter"
+    },
+    {
+     "r_offset": "0x594dfd0",
+     "addend": "0x1cd2f18",
+     "to": "0x594dfd0",
+     "new": "og_formats_commit",
+     "what": "[FORMATS] File Format leaf +0x88 commit"
     }
    ]
   },
@@ -306,8 +343,39 @@
     "0x0200ab5c": "Open Gate",
     "0x0200ab5f": "Mode",
     "0x0200ab61": "4K 3:2",
-    "0x0200ab62": "5.7K 3:2"
+    "0x0200ab62": "5.7K 3:2",
+    "0x0200ab5d": "4K 3:2 Open Gate",
+    "0x0200ab63": "5.7K 3:2 Open Gate"
    }
   }
+ },
+ "formats": {
+  "what": "[FORMATS] File Format rows that stand for open gate (native/open-gate/og_formats.c): copies of the XAVC HS 4K row with their own alias, text (help too) and value",
+  "leaf": "0x594df48",
+  "copy_from": {
+   "va": "0x4007870",
+   "alias": 136,
+   "value": 6
+  },
+  "rows": [
+   {
+    "va": "0x4007570",
+    "alias": 130,
+    "was_text": "0x200a469",
+    "was_value": 0,
+    "text": "0x0200ab5d",
+    "value": "0x40",
+    "what": "4K 3:2 Open Gate (was the legacy XAVC S 4K row)"
+   },
+   {
+    "va": "0x40075f0",
+    "alias": 131,
+    "was_text": "0x200a46a",
+    "was_value": 1,
+    "text": "0x0200ab63",
+    "value": "0x41",
+    "what": "5.7K 3:2 Open Gate (was the legacy XAVC S HD row)"
+   }
+  ]
  }
 }
