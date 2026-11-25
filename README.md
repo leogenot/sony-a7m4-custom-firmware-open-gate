@@ -50,7 +50,7 @@ There are two release channels. Pick one package; both install the same way.
 | Channel | Release | What's in it | `BODYDATA.DAT` SHA-256 |
 | --- | --- | --- | --- |
 | **Beta** (recommended) | [`beta-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.1) | Open gate and every v0.1.3 feature. Tested on a camera. Built from `main`. | `5ae4dc9e09d2f6eaee6ac84f3990dde2f7bdcd137a07d32341957d389b521a86` |
-| **Alpha, movie-mode test** | [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1) | Beta plus open gate chosen and applied on movie, with a step log. **Test build, not yet run on a camera.** Built from [`alpha-movie`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha-movie). | `93dbae0d56cfe3fdffbd6a1cc3fe7879da2a78c385a9c599b6fb219fbbfab528` |
+| **Alpha, movie-mode test** | [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1) | Beta plus open gate chosen and applied on movie, with a step log. **Test build, not yet run on a camera.** Built from [`alpha-movie`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha-movie). | `b7f19b0922cfcf50b1cbed22dccfb4964a0858087264781ace42d90d66213610` |
 | **Alpha** | [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1) | Beta plus English LUT screens. **Not yet run on a camera.** Built from [`alpha`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha). | `52314214a75585b08534a458e53e10d1620dcf1b3c794801bc8d489f4e59ce50` |
 
 You also need an install tool, one of:
