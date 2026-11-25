@@ -90,7 +90,7 @@ Built as [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmwa
 
 - **Mode on movie:** enabled. `og_select` applies on movie with the step trace on (`/setting/og_diag.txt`, as in the
   diagnostic builds).
-- **Start-up on movie:** probe 1 keeps `og_power_on` read-only on movie. Probe 2 lets it apply behind the guard.
+- **Start-up on movie:** `og_power_on` applies the saved mode on movie too, behind the same guard.
 - **Crash guard:** `/setting/open_gate.try` is written and synced before any movie-mode apply, and removed once the
   apply returns. If it exists at the next start, the previous movie apply never finished: the module logs it, saves
   Off and removes the file, so the camera starts at stock.
@@ -104,11 +104,11 @@ Camera protocol, with the trace read back after each step:
 | T3 | On movie: 4K 3:2 -> 5.7K 3:2 directly | As T2 |
 | T4 | On movie: Mode = Off | Live view and a 10 s file at stock 16:9 |
 | T5 | If T1-T3 didn't take: change Rec Frame Rate there and back, or switch to S&Q and back, then record | Whether that restart picks it up |
-| T6 | Probe 2: Mode on, battery pull, start on movie | Applied at start-up; file size; no freeze |
+| T6 | Mode on, battery pull, start on movie | Applied at start-up; file size; no freeze |
 
 | Outcome | Next |
 | --- | --- |
-| T1-T4 pass after menu exit | Design A: ship movie-mode selection, then probe 2 for start-up |
+| T1-T4 pass after menu exit | Design A: ship movie-mode selection; T6 decides whether start-up on movie ships with it |
 | Taken only after a restart (T5) | Design B, or C if the restart can be triggered from the module |
 | Freeze, broken picture or a broken first file | Keep selection on stills; look at an earlier start-up hook for the battery-pull case only |
 
