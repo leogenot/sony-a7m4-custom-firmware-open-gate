@@ -19,9 +19,9 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 > If you don't accept it, don't use anything here.
 
 > [!WARNING]
-> **This is the `alpha-angle` branch: a test build, not for regular use.** With the shutter switched to angle mode
-> (a service-mode setting), it lets the dial change the shutter angle in movie mode, which the A7 IV normally
-> refuses, and writes a step log to `/setting/og_diag.txt`. What it tests and why:
+> **This is the `alpha-angle` branch: a test build, not for regular use.** It shows Sony's hidden **Shutter Mode**
+> menu item (Speed / Angle, MENU → Exposure/Color → Exposure), lets the dial change the shutter angle in movie mode,
+> which the A7 IV normally refuses, and writes a step log to `/setting/og_diag.txt`. What it tests and why:
 > [shutter-angle research](methods/12-shutter-angle/RESEARCH.md). For normal use, take beta from `main`.
 
 [Features](#features) · [Download](#download) · [Install](#install) · [Using the features](#using-the-features) ·
@@ -50,7 +50,7 @@ There are two release channels. Pick one package; both install the same way.
 | Channel | Release | What's in it | `BODYDATA.DAT` SHA-256 |
 | --- | --- | --- | --- |
 | **Beta** (recommended) | [`beta-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/beta-0.1) | Open gate and every v0.1.3 feature. Tested on a camera. Built from `main`. | `5ae4dc9e09d2f6eaee6ac84f3990dde2f7bdcd137a07d32341957d389b521a86` |
-| **Alpha, shutter-angle test** | [`alpha-angle-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.1) | Beta plus the dial changing the shutter angle on movie (angle mode switched on in service mode), with a step log. **Test build, not yet run on a camera.** Built from [`alpha-angle`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha-angle). | `f5caf05214dca6f606d1c3b51a04792874016288b4e0cfd842b94efd5191415a` |
+| **Alpha, shutter-angle test** | [`alpha-angle-0.2`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.2) | Beta plus a Shutter Mode menu item (Speed / Angle) and the dial changing the shutter angle on movie, with a step log. **Test build, not yet run on a camera.** Built from [`alpha-angle`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha-angle). | `b70f1599b6ed2909fb86fda6d9f5fc6462202f5347748e8723131f3afa09fc8f` |
 | **Alpha** | [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1) | Beta plus English LUT screens. **Not yet run on a camera.** Built from [`alpha`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/tree/alpha). | `52314214a75585b08534a458e53e10d1620dcf1b3c794801bc8d489f4e59ce50` |
 
 You also need an install tool, one of:

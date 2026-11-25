@@ -2,7 +2,8 @@
 
 **Goal:** set the movie shutter as an angle (180°, 90°, …) with the camera's dial, like the FX3, on the A7 IV.
 
-**Status:** offline research done; test build `alpha-angle-0.1` not yet run on a camera.
+**Status:** offline research done. Test builds `alpha-angle-0.1` (dial only) and `alpha-angle-0.2` (dial plus a
+Speed / Angle menu item) not yet run on a camera.
 
 ## What was already known
 
@@ -69,10 +70,35 @@ class), and whether it's the only guard, can't be settled offline.
   - `angle.gate <real byte> <shutter mode> <dial> <let through>` whenever any of them changes;
   - `angle.drive <step> <call site>` for every drive call;
   - `angle.refused <call site>` when the dispatcher still answers "unavailable".
-- **No menu switch.** Angle mode is still switched on with the service-mode command. A Speed/Angle menu item comes
-  after the dial is proven, and needs the camera's own live setter for the mode, which isn't found yet.
+- **No menu switch.** Angle mode is switched on with the service-mode command.
 
 The override only lasts while the camera runs; nothing is saved. To go back: `bk w 0x02cf1702 00` (or install Beta).
+
+## The Shutter Mode menu item (`alpha-angle-0.2`)
+
+The A7 IV already has the FX3's **Shutter Mode** item, complete, and lists it; only its menu lookups leave it out:
+
+| Piece | In v0.1.3 |
+| --- | --- |
+| Menu group | `0x50fedc8`: id `0x10`, title `0x0200603f` "Exposure", 17 items; the first is item 441 |
+| Item map | `0x50d8890`: item 441 → leaf `0x590ab98` |
+| Leaf | `0x590ab98`: title `0x2008e2f` "Shutter Mode", help `0x2008e33` "Sets the shutter speed when shooting movies.", setting `0x490c` at `+0x68`, 2 rows at `0x3fdd7f0` |
+| Rows | 1543 "Speed" (value 0) and 1544 "Angle" (value 1), each with its own help text; both in the option map (`0x50e2c00`) |
+| Getter `+0x78` | `0x1c6c0cc`: reads the shutter mode (`0x28f6e38`) under its lock |
+| Setter `+0x80` | `0x1cabae8`: sets the mode, writes its backup value and notifies (`0x256c714(0x65b)`) |
+| Commit `+0x88` | `0x1cd40d8`: alias → value (`0x1c18368`), then `0x25d3f8c`, which runs setting `0x490c`'s change through `0x25d3ecc`, the same set, save and notify |
+
+All texts are in the English function bank (`string_english_func_j.uxc`), so nothing is renamed. The live setter
+the dial build was missing is Sony's own commit: choosing a row changes the mode at once, with no cold boot.
+
+The A7 IV leaves the item out the same way it leaves out DCI ([DCI research](../13-dci-4k/RESEARCH.md)): the item
+check `0x1c08bc0`, the item map `0x1c1116c` and the option resolve `0x1c18004` don't know it. `alpha-angle-0.2` adds
+three hooks that go before Erlla's chains at those sites (as `alpha-dci-0.1` does for DCI): item 441 is supported,
+maps to itself, and options 1543 and 1544 resolve to themselves. Everything else is Sony's code. The trace adds
+`angle.item 441 <Sony's answer> 1` and `angle.option <option> <Sony's answer> <option>`, once each.
+
+Where it should show: **MENU → Exposure/Color → Exposure → Shutter Mode** (first item), as on the FX3. Sony
+documents it on the FX3 for movie and S&Q; whether the A7 IV greys it out on stills is for the camera run.
 
 ## Risks
 
@@ -87,8 +113,15 @@ The override only lasts while the camera runs; nothing is saved. To go back: `bk
 
 ## Camera tests
 
-Activate angle mode first (service mode, as in `SHUTTER_ANGLE.md`): `bk w 0x02cf1702 01`, `bk s`, cold boot, start
-on movie.
+On `alpha-angle-0.2`, switch angle mode on from the menu (M1). On `alpha-angle-0.1`, use service mode, as in
+`SHUTTER_ANGLE.md`: `bk w 0x02cf1702 01`, `bk s`, cold boot, start on movie.
+
+| Test (0.2 only) | Do this | Check |
+| --- | --- | --- |
+| M1 | Movie: MENU → Exposure/Color → Exposure → Shutter Mode → **Angle** | The item is there; the shooting screen shows the angle (180°) |
+| M2 | Shutter Mode → **Speed** | The screen shows a shutter speed again, at once |
+| M3 | Set Angle, power off and on | Still Angle |
+| M4 | On stills, open the same page | Whether Shutter Mode shows, greyed out or not |
 
 | Test | Do this | Check |
 | --- | --- | --- |
@@ -97,11 +130,12 @@ on movie.
 | A3 | Check both clips' metadata (exposure time) | 1/96 s at 90° and 1/24 s at 360° at 24p |
 | A4 | Flexible Exposure, Tv on Manual, turn the control wheel | As A1 |
 | A5 | Switch to stills and back to movie | The angle is kept; stills shutter speed unaffected |
-| A6 | Speed mode (`bk w 0x02cf1702 00`, cold boot) | Shutter speed works as on Beta 0.1 |
+| A6 | Speed mode (0.2: the menu; 0.1: `bk w 0x02cf1702 00`, cold boot) | Shutter speed works as on Beta 0.1 |
 
 | Result | Next |
 | --- | --- |
-| A1–A3 pass | The gate is the only block: build a Speed/Angle menu item, then a release |
+| M1–M3 and A1–A3 pass | Promote to beta: the menu item and the dial work |
+| M1 fails: no item, or "currently disabled" | Read `angle.item` / `angle.option`: another check hides it (the 0x1c14e6c filter, or the row flags) |
 | The trace shows `angle.drive` but the value doesn't change | A second block after the drive (event `0x3fb8` handling): trace it |
 | The value changes but the exposure doesn't follow | The angle is display-only on this body: stop |
 | Still `angle.refused`, or no `angle.gate` with the byte set | The dial uses another path: read the trace for which |
@@ -111,4 +145,5 @@ on movie.
 - Is the availability byte set in M, or only in P/A?
 - Does the drive change `0x02cf1704`, and does the exposure follow it?
 - Does the control wheel use one of the four `0x2364xxx` call sites?
-- Where is the live setter for the shutter mode, for a menu switch without a cold boot?
+- Does Shutter Mode show on stills, and greyed out or not?
+- Does the menu change take effect at once on the shooting screen?
