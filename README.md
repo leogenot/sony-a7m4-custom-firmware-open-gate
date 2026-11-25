@@ -223,7 +223,7 @@ Where each feature stands, with the details and evidence, is in [ROADMAP.md](ROA
   a Shutter Mode menu item (Speed / Angle) and the shutter angle changed with the dial in movie mode.
 - [`alpha-hd-probe-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-hd-probe-0.1):
   read-only log of which sensor readout each movie format uses, for 1080p 3:2 and HD 60p.
-- [`alpha-dci-0.3`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-dci-0.3): XAVC
+- [`alpha-dci-0.4`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-dci-0.4): XAVC
   S-I DCI 4K (4096x2160) in File Format, with 24p / 30p (NTSC) or 25p (PAL).
 - [`alpha-formats-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-formats-0.1):
   "4K 3:2 Open Gate" and "5.7K 3:2 Open Gate" in File Format.
