@@ -14,7 +14,7 @@ import struct
 import sys
 from pathlib import Path
 
-PATHS = (b"../../setting/og_diag.txt", b"../../tmp_wbshd/og_diag.txt", b"../../setting/open_gate.dat",
+PATHS = (b"../../setting/og_diag.txt", b"../../setting/og_diag.prev.txt", b"../../setting/open_gate.dat",
          b"../../setting/open_gate.try")   # [PROBE-movie] the guard file: there only if a movie apply never returned
 SET_FILE_PATH, GET_FILE2 = 0x400F, 0x4011
 ST_OK, ST_NO_FILE = 0, 0x10000006

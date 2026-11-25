@@ -44,12 +44,12 @@
   "og_image.h": "feacf8160b1b28d0def68d423ad2a05a148f4c0ada83366a12a77d9bcd483b91",
   "og_sys.h": "58589976138ebb7c97e64a98761cdd189550e95fb6091e461d449acf6373fc49",
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
-  "og_diag.c": "908459dee4d3163555aae916407633049b8520de9e93ef7a934689b888aa11ed",
+  "og_diag.c": "24ec232d5583164eb71bdd731ee8fcf80ecbf9bcaffe40ab1dfcf5a890681587",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86"
  },
  "module": {
-  "text_bytes": 49076,
-  "text_sha256": "57c21411e4362a5aba99fe4ef0d5bd3583d9eb475f02150ee2ebf4e65bb05014",
+  "text_bytes": 49148,
+  "text_sha256": "7f98c2eb9b9681b5dd14352a56809250e1a7245b5065e4f57c3e248ea5adabfa",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {

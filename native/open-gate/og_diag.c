@@ -1,5 +1,6 @@
 /* [DEBUG-og2] The diagnostic trace (og_diag.h). Each line: "<n> <ms> <tag> <hex values>". The first
- * line of a process truncates the file and names the build. At most 800 lines per process. */
+ * line of a process truncates the file and names the build. At most 800 lines per process. [PROBE-movie] The
+ * previous process's trace is first renamed to og_diag.prev.txt, so a battery pull after a freeze keeps it. */
 #include "og_diag.h"
 
 #if !__STDC_HOSTED__
@@ -7,6 +8,9 @@
 
 #ifndef OG_DIAG_SETTING
 #define OG_DIAG_SETTING "/setting/og_diag.txt"
+#endif
+#ifndef OG_DIAG_PREVIOUS
+#define OG_DIAG_PREVIOUS "/setting/og_diag.prev.txt"
 #endif
 #ifdef OG_HOST   /* host check of the format: -ffreestanding -DOG_HOST */
 #include <time.h>
@@ -54,8 +58,9 @@ static uint64_t now_ms(void)
 
 static void emit(const char *buf, unsigned n)
 {
-    static const char head[] = "og-diag 1 open-gate-diag\n";
+    static const char head[] = "og-diag 1 alpha-movie\n";
     long first = !__atomic_exchange_n(&diag_started, 1, __ATOMIC_ACQ_REL);
+    if (first) (void)og_rename(OG_DIAG_SETTING, OG_DIAG_PREVIOUS);   /* [PROBE-movie] */
     long flags = OG_O_WRONLY | OG_O_CREAT | OG_O_CLOEXEC | (first ? OG_O_TRUNC : OG_O_APPEND);
     long fd = og_openat(OG_DIAG_SETTING, flags, 0644);
     if (fd < 0) return;
