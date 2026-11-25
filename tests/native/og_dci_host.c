@@ -19,6 +19,8 @@ static int item_calls, option_calls;
 static void *seen_object;
 uint32_t og_dci_previous_item_supported(void *object, uint32_t item) { item_calls++; seen_object = object; return item == 40; }
 uint32_t og_dci_previous_resolve_option(uint32_t option) { option_calls++; return option == 139 ? 139 : 0x15d8; }
+static uint32_t condition_value;
+const volatile uint32_t *dci_condition(void) { return &condition_value; }
 
 int main(void)
 {

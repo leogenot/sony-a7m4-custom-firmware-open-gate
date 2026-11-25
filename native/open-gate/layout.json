@@ -46,13 +46,13 @@
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "ea6d0a6c57009120a71f49aa82eda077514fb292b3d07dce8124adef81e78abe",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
-  "og_dci.c": "421aef4dd445f8b5af958f39662c380bb11a32f3b30240ba18c242387be18904",
+  "og_dci.c": "61659f8b2e85f2dcb5295db23352017191fa07df152c6474c5cf7720d9696d02",
   "og_dci.h": "a1835d0d387e119efa2a1390dcd1775854761bfed766ecf46e6b0a99a6e03730",
   "og_dci.S": "01b000aa5ea91352ef6e0a5fe8edb36b1f0fb908a64ab45fb1104354fc76f6ac"
  },
  "module": {
-  "text_bytes": 47876,
-  "text_sha256": "c6441d2af09d3b31655a6e4d9c14f09db59fb662556029277df5aed8823d09c9",
+  "text_bytes": 47900,
+  "text_sha256": "06587d8f6bc576710c8a0924a5819b11080f23b4614b8590953a74b699e433af",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -80,7 +80,8 @@
  },
  "stock_functions": {
   "dlsym": "0x17166a0",
-  "native_mode": "0x28ecdf8"
+  "native_mode": "0x28ecdf8",
+  "dci_condition": "0x2922784"
  },
  "hooks": [
   {
@@ -132,6 +133,67 @@
    "what": "[DCI] menu option id resolution (w0 option id), first instruction: B to Erlla's alias filter (stock 6.02: stp x29, x30, [sp, #-0x20]!). Options 141 (File Format DCI) and 202-204, 206, 207 (DCI 30p, 25p, 24p, 29.97p, 23.98p) resolve to themselves."
   }
  ],
+ "row_edits": {
+  "what": "[DCI] 16-bit fields of option rows changed in place (a7m4/open_gate.py _edit_rows). Sony's row check 0x1c20420 reads a per-product flag at +0x44 + 2 x index; the index comes from 0x1c16460 -> 0x1c0bff4 and is 19 on the A7 IV (feature index 26, menu_item 0), so the flag is +0x6a. The row-list builder 0x1c0e52c (vtable slot 0x1a8, 0x1c0f12c) and the option check 0x1c08bc0 both use it; +0x30 picks an extra availability function from the table at 0x58f9db0 (entry 0 = always).",
+  "edits": [
+   {
+    "va": "0x4007af0",
+    "alias": 141,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "File Format: XAVC S-I DCI 4K, shown on the A7 IV"
+   },
+   {
+    "va": "0x4007af0",
+    "alias": 141,
+    "at": "0x30",
+    "old": "0x15",
+    "new": "0x0",
+    "what": "File Format: XAVC S-I DCI 4K, its own availability check (0x1c35f0c: setting 0x2530, getter 0x2922784, nonzero) replaced by entry 0, always available; the real value is logged (dci.option 141)"
+   },
+   {
+    "va": "0x4069270",
+    "alias": 202,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "DCI Rec Frame Rate: 30p, shown on the A7 IV (its frame-rate availability check stays Sony's)"
+   },
+   {
+    "va": "0x40692f0",
+    "alias": 203,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "DCI Rec Frame Rate: 25p, shown on the A7 IV (its frame-rate availability check stays Sony's)"
+   },
+   {
+    "va": "0x4069370",
+    "alias": 204,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "DCI Rec Frame Rate: 24p, shown on the A7 IV (its frame-rate availability check stays Sony's)"
+   },
+   {
+    "va": "0x4069470",
+    "alias": 206,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "DCI Rec Frame Rate: 29.97p, shown on the A7 IV (its frame-rate availability check stays Sony's)"
+   },
+   {
+    "va": "0x40694f0",
+    "alias": 207,
+    "at": "0x6a",
+    "old": "0x0",
+    "new": "0x1",
+    "what": "DCI Rec Frame Rate: 23.98p, shown on the A7 IV (its frame-rate availability check stays Sony's)"
+   }
+  ]
+ },
  "camera": {
   "dmm_symbols": {
    "alloc": "_Z9dmm_allocjPj",

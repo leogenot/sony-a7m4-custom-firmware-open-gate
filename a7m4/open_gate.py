@@ -95,7 +95,7 @@ def _config_header(lay: dict, record: dict) -> str:
 def _linker_script(lay: dict) -> str:
     ap = lay["appfw"]
     rx, rw = _int(ap["rx"]["va"]), _int(ap["rw"]["va"])
-    names = {"dlsym": lay["stock_functions"]["dlsym"], "native_mode": lay["stock_functions"]["native_mode"]}
+    names = dict(lay["stock_functions"])
     names |= {h["previous_symbol"]: h["previous_target"] for h in lay["hooks"]}
     return ("ENTRY(og_hook_first)\nSECTIONS {\n"
             f" .text {rx:#x} : {{ *(.text*) *(.rodata*) }}\n"
@@ -303,6 +303,20 @@ def _take_over_sound_page(out: bytearray, appfw: bytes, elf, loads, symbols: Map
         put(offset(new_at, 8), struct.pack("<Q", value))
 
 
+def _edit_rows(out: bytearray, loads, layout: dict) -> None:
+    """Change menu option-row fields in place (layout.json "row_edits"): each edit names the row by VA and alias and
+    a 16-bit field by offset, and is refused unless the row holds that alias and the field its expected old value."""
+    for edit in layout.get("row_edits", {}).get("edits", []):
+        va, at = _int(edit["va"]), _int(edit["at"])
+        row = _file_offset(loads, va, 0x80)
+        require(at + 2 <= 0x80, "OG_ROWS", f"{va:#x}+{at:#x}: outside the 0x80-byte row")
+        require(struct.unpack_from("<I", out, row)[0] == edit["alias"], "OG_ROWS",
+                f"{va:#x} is not option {edit['alias']}'s row")
+        require(struct.unpack_from("<H", out, row + at)[0] == _int(edit["old"]), "OG_ROWS",
+                f"{va:#x}+{at:#x}: not the expected old value")
+        struct.pack_into("<H", out, row + at, _int(edit["new"]))
+
+
 def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
     """Place the module in appFw.so's zero gap, add its program headers and hooks, and turn the custom firmware's
     Custom Shutter Sound page into the Open Gate page on Shooting > Media; same length as the input."""
@@ -350,6 +364,7 @@ def compose_ap(appfw: bytes, module: Module, layout: dict) -> bytes:
                 f"{va:#x} does not hold the expected {hook['kind'].upper()}")
         out[at:at + 4] = _branch(va, module.symbols[hook["entry"]], link)
     _take_over_sound_page(out, appfw, elf, loads, module.symbols, layout)
+    _edit_rows(out, loads, layout)
     result = bytes(out)
     require(len(result) == len(appfw), "OG_SIZE", "appFw.so changed size")
     check = ELFFile(io.BytesIO(result))

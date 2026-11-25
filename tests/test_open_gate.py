@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 from a7m4.common import ToolError
-from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _linker_script, _uxc_records, _uxc_texts,
-                            build, compile_module, compose_ap)
+from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _edit_rows, _linker_script, _uxc_records,
+                            _uxc_texts, build, compile_module, compose_ap)
 from a7m4.open_gate_sites import (_CP_IMAGE_VA, _NATIVE, PRESETS, _ROOT, STEP1, _STORED_RECORD, Family, Mode, Run, SiteImage,
                                   Space, check_stock, compile_image, dmmcfg_edits, _layout, load_design, runs_of)
 
@@ -595,6 +595,10 @@ def composed(image, v013, tmp_path_factory):
     return module, Image(compose_ap(v013.data, module, _layout()))
 
 
+def row_edits():
+    return _layout().get("row_edits", {}).get("edits", [])
+
+
 def takeover_places(v013):
     """File (offset, bytes) of every place the takeover may change, from layout.json."""
     rela = v013.elf.get_section_by_name(".rela.dyn")
@@ -615,6 +619,8 @@ def test_composed_appfw_changes_only_the_listed_places(composed, v013):
     hooks = [v013.offset(int(h["va"], 16)) for h in _layout()["hooks"]]
     allowed = [(0x38, 0x3a), (0x5e73000, 0x5e73000 + len(module.text)), (0x5e80000, 0x5e80000 + 17 * 56)]
     allowed += [(at, at + 4) for at in hooks] + [(at, at + n) for at, n in takeover_places(v013)]
+    edited = [v013.offset(int(e["va"], 16) + int(e["at"], 16)) for e in row_edits()]
+    allowed += [(at, at + 2) for at in edited]
     assert all(any(lo <= int(i) < hi for lo, hi in allowed) for i in differ)
     assert set(hooks) <= {int(i) & ~3 for i in differ}
     assert len(out.rela) == len(v013.rela)
@@ -854,3 +860,46 @@ def test_og_dci_on_the_host(dci_host):
                   "DCI 60p, 50p, 59.94p and 24.00p keep the chain's answer", "other options keep the chain's answer",
                   "the chain sees every option call", "the option set is exactly the six"):
         assert f"ok {check}" in dci_host, check
+
+
+# --- [DCI] the A7 IV's per-product row flag ---------------------------------------------------------------------------
+
+A7IV_FLAG = 0x44 + 2 * 19   # +0x6a
+
+
+@needs_appfw
+def test_v013_row_check_reads_the_a7iv_flag(v013):
+    """Sony's row check 0x1c20420 reads the halfword at row + 0x44 + 2 x index (index from 0x1c16460) and wants 1. The
+    index is 19 on the A7 IV: 0x1c0bff4 maps menu_item - 1 through a 26-byte table and falls back to 19, and the A7 IV's
+    menu_item is 0 (feature index 26 in the table at 0x37b7be8). At index 19 File Format shows exactly the A7 IV's list,
+    and DCI is off."""
+    assert v013.branch(0x1c20430) == ("bl", 0x1c16460) and v013.branch(0x1c20448) == ("b", 0x1c20410)
+    assert [v013.u32(0x1c20434), v013.u32(0x1c20438)] == [0x8b20c660, 0x79408801]   # add x0, x19, w0, sxtw #1; ldrh +0x44
+    assert v013.u32(0x1c20414) == 0x7100043f                                             # cmp w1, #1
+    assert v013.branch(0x1c1647c) == ("bl", 0x1c0bff4) and v013.branch(0x1c0bffc) == ("bl", 0x183ee0c)
+    assert v013.u32(0x1c0c008) == 0x52800260                                             # mov w0, #19
+    assert v013.u32(0x37b7be8 + 4 * 26) == 0
+    shown = [alias for alias, va in ((130 + i, FILE_FORMAT_ROWS + 0x80 * i) for i in range(13))
+             if v013.u32(va) == alias and v013.u32(va + A7IV_FLAG) & 0xffff == 1]
+    assert shown == [136, 137, 138, 139, 140, 142]                                       # HS 4K .. S-I HD, "-"
+
+
+def test_composed_dci_rows_are_shown_on_the_a7iv(composed, v013):
+    module, out = composed
+    for edit in row_edits():
+        va, at = int(edit["va"], 16), int(edit["at"], 16)
+        assert out.u32(va) == v013.u32(va) == edit["alias"]
+        assert v013.u32(va + at) & 0xffff == int(edit["old"], 16) and out.u32(va + at) & 0xffff == int(edit["new"], 16)
+    assert {e["alias"] for e in row_edits() if int(e["at"], 16) == A7IV_FLAG} == {141, 202, 203, 204, 206, 207}
+    assert out.u32(FILE_FORMAT_ROWS + 0x80 * 11 + 0x30) & 0xffff == 0                    # DCI: always available
+    for i in (0, 1, 5, 8, 9):                                                            # 60p 50p 59.94p 24.00p -
+        assert out.u32(DCI_RATE_ROWS + 0x80 * i + A7IV_FLAG) & 0xffff == 0
+
+
+def test_edit_rows_refuses_another_row_or_value(v013):
+    loads = [s for s in v013.elf.iter_segments() if s["p_type"] == "PT_LOAD"]
+    edit = {"va": "0x4007af0", "alias": 141, "at": "0x6a", "old": "0x0", "new": "0x1"}
+    with pytest.raises(ToolError, match="not option 140"):
+        _edit_rows(bytearray(v013.data), loads, {"row_edits": {"edits": [edit | {"alias": 140}]}})
+    with pytest.raises(ToolError, match="expected old value"):
+        _edit_rows(bytearray(v013.data), loads, {"row_edits": {"edits": [edit | {"old": "0x1"}]}})
