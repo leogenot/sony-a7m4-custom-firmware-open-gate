@@ -19,7 +19,7 @@ Custom firmware for the Sony A7 IV (ILCE-7M4). It is
 > If you don't accept it, don't use anything here.
 
 [Features](#features) · [Download](#download) · [Install](#install) · [Using the features](#using-the-features) ·
-[Limitations](#limitations) · [How open gate works](#how-open-gate-works) · [Build it yourself](#build-it-yourself) ·
+[Limitations](#limitations) · [Roadmap](#roadmap) · [How open gate works](#how-open-gate-works) · [Build it yourself](#build-it-yourself) ·
 [Disclaimer](#disclaimer-and-limitation-of-liability)
 
 ## Features
@@ -210,6 +210,32 @@ These work on their own, with no menu:
 - **Open gate only works in the recording settings above.** No 1080p open gate yet (see the
   [research notes](methods/11-open-gate/HD-RESEARCH.md)), no de-squeeze preview, and no in-camera playback of 5.7K.
 - **The custom shutter and focus sounds are gone.** Their code is still in the firmware, but no menu reaches it.
+
+## Roadmap
+
+Where each feature stands, with the details and evidence, is in [ROADMAP.md](ROADMAP.md).
+
+**Test builds waiting for a camera run** (pre-releases, each built on Beta 0.1 on its own):
+
+- [`alpha-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-0.1): the Custom LUT
+  screens in English.
+- [`alpha-movie-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-movie-0.1):
+  open gate chosen and applied with the switch on movie, with a crash guard.
+- [`alpha-angle-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-angle-0.1):
+  shutter angle changed with the dial in movie mode.
+- [`alpha-hd-probe-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-hd-probe-0.1):
+  read-only log of which sensor readout each movie format uses, for 1080p 3:2 and HD 60p.
+- [`alpha-dci-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-dci-0.1): XAVC
+  S-I DCI 4K (4096x2160) in File Format, with 24p / 30p (NTSC) or 25p (PAL).
+- [`alpha-formats-0.1`](https://github.com/leogenot/sony-a7m4-custom-firmware-open-gate/releases/tag/alpha-formats-0.1):
+  "4K 3:2 Open Gate" and "5.7K 3:2 Open Gate" in File Format.
+
+**Candidates:** anamorphic de-squeeze display, a Speed / Angle shutter menu, 1080p 3:2 open gate, a monitoring-only
+user LUT, Cine EI, Log shooting mode and Flexible ISO, in-camera time-lapse movie, a Big6-style main screen with
+waveform and false colour, and a binned full-frame 60p below 4K.
+
+**Not possible on this body:** full-frame 4K 60p (the sensor reads out too slowly), RAW over HDMI, a built-in
+variable ND, auto framing, and probably a manual base ISO switch.
 
 ## How open gate works
 
