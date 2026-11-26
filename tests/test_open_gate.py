@@ -17,8 +17,9 @@ from pathlib import Path
 import pytest
 
 from a7m4.common import ToolError
-from a7m4.open_gate import (Module, _config_header, _edit_bank, _edit_banks, _edit_menu_records, _linker_script, _uxc_records,
-                            _uxc_texts, build, compile_module, compose_ap)
+from a7m4.open_gate import (_CFLAGS, Module, _config_header, _edit_bank, _edit_banks, _edit_menu_records,
+                            _linker_script, _stored_addresses, _uxc_records, _uxc_texts, build, compile_module,
+                            compose_ap)
 from a7m4.open_gate_sites import (_CP_IMAGE_VA, _NATIVE, PRESETS, _ROOT, STEP1, _STORED_RECORD, Family, Mode, Run, SiteImage,
                                   Space, check_stock, compile_image, dmmcfg_edits, _layout, load_design, runs_of)
 
@@ -585,6 +586,31 @@ def test_v013_sound_page_is_a_complete_custom_item(v013):
     assert (v013.u32(0x1ba8084) >> 5) & 0x7ffff == (0x1ba80a0 - 0x1ba8084) // 4                         # ... at 0x1ba80a0
     assert v013.branch(0x1ba808c) == ("bl", 0x1c14efc)                                                  # nonzero: caution
     assert group_entries(v013, SILENT)[-2:] == [(PAGE_MID, 0, PAGE), (PAGE_MID + 3, 0, FOCUS_PAGE)]
+
+
+def test_stored_addresses_finds_pointer_tables_not_pc_relative_code(tmp_path):
+    """alpha-dci-0.4 boot-looped the camera: a table of function pointers holds link-time addresses, which nothing
+    relocates once appFw.so loads at its base. Calls, adrp/add and debug info are fine."""
+    if not ZIG.is_file():
+        pytest.skip("pinned Zig not available")
+    from elftools.elf.elffile import ELFFile
+
+    def places(code):
+        (tmp_path / "t.c").write_text(code, "utf-8")
+        subprocess.run([str(ZIG), "cc", *_CFLAGS, "-c", "t.c", "-o", "t.o"], check=True, cwd=tmp_path)
+        with (tmp_path / "t.o").open("rb") as f:
+            return _stored_addresses(ELFFile(f))
+
+    stock = ("#define HIDDEN __attribute__((visibility(\"hidden\")))\n"
+             "extern unsigned f(unsigned) HIDDEN, h(unsigned) HIDDEN;\n")
+    assert places(stock + "static const char text[] = \"x\"; static unsigned n;\n"
+                  "unsigned g(unsigned a) { n += a; return f(a) + text[0]; }\n") == []
+    # Two different entries each: the compiler folds a table whose entries are all the same.
+    assert places(stock + "typedef unsigned check(unsigned);\nstatic check *const table[] = {f, h};\n"
+                  "unsigned g(unsigned a) { return table[a](a); }\n") == [".rodata+0x0 -> f", ".rodata+0x8 -> h"]
+    assert places("static const char *const names[] = {\"a\", \"b\"};\n"
+                  "const char *g(unsigned a) { return names[a]; }\n") \
+        == [".rodata+0x0 -> .rodata.str1.1", ".rodata+0x8 -> .rodata.str1.1"]
 
 
 @pytest.fixture(scope="module")
