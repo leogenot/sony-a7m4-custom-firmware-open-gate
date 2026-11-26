@@ -32,6 +32,7 @@ _WARM_BOOT = "0700_part_image/dev/nflasha5"
 _PART_SUM = "0701_part_image_sum/part_image.sum"
 _PT_LOAD, _PT_PHDR, _PHDR = 1, 6, struct.Struct("<IIQQQQQQ")
 _R_RELATIVE = 1027
+_ABSOLUTE = {257, 258, 259, *range(263, 273)}   # R_AARCH64_ABS64/32/16, MOVW_UABS_G0..G3, MOVW_SABS_G0..G2
 _RELA = struct.Struct("<QQQ")   # Elf64_Rela {r_offset, r_info, r_addend}; also a menu group entry {mid, leaf, page}
 _GROUP_BYTES = 0x2e0            # menu group: 16-byte header {id, title, count, 0}, 30 entries of 24 bytes
 _SOURCES = ("og.c", "og_reconcile.c", "og_mem.c", "og_util.c", "og_menu.c", "og_lut.c", "og_entry.S", "og_sites.S")
@@ -54,6 +55,27 @@ class Module:
     state_va: int
     state_bytes: int
     symbols: Mapping[str, int]
+
+
+def _stored_addresses(obj) -> list[str]:
+    """Where a compiled object holds an absolute address ("section+offset -> symbol"). The module is linked at its
+    appFw.so address with nothing to relocate it, and appFw.so loads at a nonzero base, so such an address (a
+    function pointer table, a pointer to a string) is wrong on the camera: alpha-dci-0.4's probe table boot-looped
+    it. PC-relative references (calls, adrp/add) are fine; relocations into debug sections never reach the camera."""
+    found = []
+    for section in obj.iter_sections():
+        if section["sh_type"] not in ("SHT_REL", "SHT_RELA") or not section["sh_size"]:
+            continue
+        target = obj.get_section(section["sh_info"])
+        if not target["sh_flags"] & 2:   # SHF_ALLOC
+            continue
+        symbols = obj.get_section(section["sh_link"])
+        for r in section.iter_relocations():
+            if r["r_info_type"] in _ABSOLUTE:
+                symbol = symbols.get_symbol(r["r_info_sym"])
+                name = symbol.name or obj.get_section(symbol["st_shndx"]).name
+                found.append(f"{target.name}+{r['r_offset']:#x} -> {name}")
+    return found
 
 
 def _int(value: str | int) -> int:
@@ -154,6 +176,16 @@ def compile_module(zig: Path, image: SiteImage, workdir: Path) -> Module:
     elf_path = workdir / "open_gate.elf"
     # The link drops sections nothing reaches from the entry; every hook entry is reached only from appFw.so.
     entries = dict.fromkeys(h["entry"] for h in lay["hooks"])   # 15 hooks share og_lut_text_bind
+    # Checked first: each source compiled on its own, to see its relocations (the link below resolves them silently).
+    (workdir / "check").mkdir()
+    stored = []
+    for source in _SOURCES:
+        obj = workdir / "check" / (source + ".o")
+        subprocess.run([str(zig), "cc", *_CFLAGS, "-c", "-I", str(workdir), "-I", str(_NATIVE), str(_NATIVE / source),
+                        "-o", str(obj)], check=True, cwd=workdir)
+        stored += [f"{source}:{place}" for place in _stored_addresses(ELFFile(io.BytesIO(obj.read_bytes())))]
+    require(not stored, "OG_LINK", "The module stores absolute addresses, which nothing relocates once appFw.so loads "
+            "at its base; call functions directly instead: " + ", ".join(stored))
     command = [str(zig), "cc", *_CFLAGS, "-Wl,-e,og_hook_first", *(f"-Wl,-u,{e}" for e in entries),
                "-Wl,-T," + str(workdir / "open_gate.ld"),
                "-I", str(workdir), "-I", str(_NATIVE), *[str(_NATIVE / s) for s in _SOURCES], "-o", str(elf_path)]
