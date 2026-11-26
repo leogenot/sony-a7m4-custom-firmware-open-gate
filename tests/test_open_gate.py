@@ -960,5 +960,4 @@ def test_v013_menu_vtables_hold_sonys_per_option_checks(v013):
         slot = at - base
         name = "og_dci_previous_shown" if slot == 0x1a8 else f"og_dci_previous_slot_{slot:x}"
         assert int(stock[name], 16) == int(h["addend"], 16)
-    assert len(vtable_hooks()) == 12 and {int(stock[f"og_dci_previous_slot_{s}"], 16) for s in ("1f8", "200")} == \
-        {0x1c08d74, 0x1c08da8}
+    assert len(vtable_hooks()) == 12

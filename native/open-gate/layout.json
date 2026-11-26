@@ -46,13 +46,13 @@
   "og_menu.h": "0641b8a0f8fde1fe7e73d217b1c7cefd7186126d65689de589b8fdfae63ad5d6",
   "og_diag.c": "ea6d0a6c57009120a71f49aa82eda077514fb292b3d07dce8124adef81e78abe",
   "og_diag.h": "3d88f4b00189287826671f54007181b91757de12bb54534bfea2a8301bd86e86",
-  "og_dci.c": "ad283dd70a96d3d18c3f500e238f4f060ca670a87f3262d135c674e0ed9e16dd",
+  "og_dci.c": "8d882b22f4cb5938f699e5e92b4e6d61f91be7fc0b718f72d00fb1991a02b774",
   "og_dci.h": "725360cfb648342dfd69de8a106d1259c9b52715c397c4632ccad55e600a56cf",
   "og_dci.S": "01b000aa5ea91352ef6e0a5fe8edb36b1f0fb908a64ab45fb1104354fc76f6ac"
  },
  "module": {
-  "text_bytes": 48340,
-  "text_sha256": "0d6a8ef6bd6ada3a8ef74dd5ac5ec3ef82cc3824a8c3f9e287efb08d6e0eee0e",
+  "text_bytes": 48348,
+  "text_sha256": "c7f3963a81f461a611ce9ecff52fa17c43d111720246aa7bc55dd9245d0d02e5",
   "what": "the linked .text (code, strings, site image) for these sources, designs and compiler"
  },
  "appfw": {
@@ -87,9 +87,7 @@
   "og_dci_previous_slot_1f0": "0x1c08c18",
   "og_dci_previous_slot_210": "0x1c08bc0",
   "og_dci_previous_slot_6f8": "0x1c07aa4",
-  "og_dci_previous_slot_700": "0x1c0ca38",
-  "og_dci_previous_slot_1f8": "0x1c08d74",
-  "og_dci_previous_slot_200": "0x1c08da8"
+  "og_dci_previous_slot_700": "0x1c0ca38"
  },
  "hooks": [
   {

@@ -62,16 +62,18 @@ uint32_t og_dci_resolve_option(uint32_t option)
  * Sony's menu object answers per-option questions through its vtable (base 0x58f7a68, a second copy at 0x58f8618;
  * layout.json "vtable_hooks" points their entries here). For the DCI row each wrapper answers yes; for every other
  * option it is Sony's own function. The first time the row builder asks about S-I 4K (139, selectable) and DCI (141),
- * og_dci_checks logs what Sony's own functions answer for each, so the log shows which one says no for DCI.
- * Slots 0x1f8 and 0x200 look the id up in another table (141 is Camera Set Memory 1 there): probed, not overridden. */
-typedef uint32_t check(void *object, uint32_t alias);
-extern check og_dci_previous_shown HIDDEN, og_dci_previous_slot_1b0 HIDDEN, og_dci_previous_slot_1f0 HIDDEN,
-    og_dci_previous_slot_1f8 HIDDEN, og_dci_previous_slot_200 HIDDEN, og_dci_previous_slot_210 HIDDEN,
-    og_dci_previous_slot_6f8 HIDDEN, og_dci_previous_slot_700 HIDDEN;
+ * og_dci_checks logs what Sony's own functions answer for each, so the log shows which one says no for DCI. The row
+ * builder asks during startup, so the probe runs at every boot. It calls each function directly: the module is linked
+ * at fixed addresses that nothing relocates, so a table of their addresses was wrong on the camera and boot-looped
+ * alpha-dci-0.4 (the build now refuses any stored address). Slots 0x1f8 and 0x200 look the id up in another table
+ * (141 is Camera Set Memory 1 there): neither probed nor overridden. */
+extern uint32_t og_dci_previous_shown(void *object, uint32_t alias) HIDDEN;
+extern uint32_t og_dci_previous_slot_1b0(void *object, uint32_t alias) HIDDEN;
+extern uint32_t og_dci_previous_slot_1f0(void *object, uint32_t alias) HIDDEN;
+extern uint32_t og_dci_previous_slot_210(void *object, uint32_t alias) HIDDEN;
+extern uint32_t og_dci_previous_slot_6f8(void *object, uint32_t alias) HIDDEN;
+extern uint32_t og_dci_previous_slot_700(void *object, uint32_t alias) HIDDEN;
 
-static check *const probed[] = {og_dci_previous_shown,    og_dci_previous_slot_1b0, og_dci_previous_slot_1f0,
-                                og_dci_previous_slot_1f8, og_dci_previous_slot_200, og_dci_previous_slot_210,
-                                og_dci_previous_slot_6f8, og_dci_previous_slot_700};
 static volatile uint32_t probing;   /* nonzero while og_dci_checks runs: the wrappers pass Sony's answer through */
 static uint32_t probed_aliases;    /* bit 0: 139 logged; bit 1: 141 logged */
 
@@ -86,7 +88,7 @@ static uint32_t yes(uint32_t answer)
     return (answer & 0xff) != 0;
 }
 
-/* Bit i = probed[i]'s answer (0x1a8, 0x1b0, 0x1f0, 0x1f8, 0x200, 0x210, 0x6f8, 0x700). */
+/* Bits 0-5: Sony's answers from slots 0x1a8, 0x1b0, 0x1f0, 0x210, 0x6f8, 0x700. */
 static void og_dci_checks(void *object, uint32_t alias)
 {
     uint32_t bit;
@@ -94,10 +96,13 @@ static void og_dci_checks(void *object, uint32_t alias)
     else if (alias == OG_DCI_FORMAT_OPTION) bit = 2;
     else return;
     if (__atomic_fetch_or(&probed_aliases, bit, __ATOMIC_RELAXED) & bit) return;
-    uint64_t answers = 0;
     probing = 1;
-    for (unsigned i = 0; i < sizeof probed / sizeof *probed; i++)
-        answers |= (uint64_t)yes(probed[i](object, alias)) << i;
+    uint64_t answers = yes(og_dci_previous_shown(object, alias))
+                     | yes(og_dci_previous_slot_1b0(object, alias)) << 1
+                     | yes(og_dci_previous_slot_1f0(object, alias)) << 2
+                     | yes(og_dci_previous_slot_210(object, alias)) << 3
+                     | yes(og_dci_previous_slot_6f8(object, alias)) << 4
+                     | yes(og_dci_previous_slot_700(object, alias)) << 5;
     probing = 0;
     og_diag("dci.checks", alias, answers, *(uint64_t *)object, 0);   /* [DEBUG-og2] the object's vtable pointer */
 }
