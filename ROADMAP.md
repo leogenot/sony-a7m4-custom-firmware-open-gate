@@ -1,6 +1,6 @@
 # Cinema-feature roadmap
 
-Last updated 2026-11-25. Features for this firmware, with where each one stands and what decides the next step. The
+Last updated 2026-11-26. Features for this firmware, with where each one stands and what decides the next step. The
 research behind them is in [sony-a7iv-feature-research](https://github.com/leogenot/sony-a7iv-feature-research). Evidence grades (A–E) are the
 [feature inventory](https://github.com/leogenot/sony-a7iv-feature-research/blob/main/docs/FEATURE_INVENTORY.md)'s.
 
