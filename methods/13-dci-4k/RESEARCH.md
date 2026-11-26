@@ -5,9 +5,9 @@
 
 **Status:** camera runs on 2026-11-25. `alpha-dci-0.1`: **DCI not in File Format** (the rows' per-product flag,
 below). `alpha-dci-0.2` set it: **DCI listed but greyed out**. `alpha-dci-0.3` also set the DCI Rec Frame Rate
-item's flag: **still greyed out**. Test build `alpha-dci-0.4` answers yes for DCI in the menu's per-option checks
-and logs Sony's own answers, not yet run on a camera. Every recording layer is present in the A7 IV's v0.1.3
-files.
+item's flag: **still greyed out**. `alpha-dci-0.4` (2026-11-26): **boot loop**, withdrawn; the camera no longer
+starts and needs Fastboot recovery. `alpha-dci-0.5` fixes the cause and is built, but is not released until that
+camera is recovered. Every recording layer is present in the A7 IV's v0.1.3 files.
 
 ## Present in the firmware
 
@@ -143,13 +143,39 @@ The menu object answers per-option questions through its vtable (base `0x58f7a68
 
 `alpha-dci-0.4` points both vtables' entries for `0x1a8`, `0x1b0`, `0x1f0`, `0x210`, `0x6f8` and `0x700` at
 `og_dci.c` wrappers (`layout.json` `vtable_hooks`, `_hook_vtables`): yes for 141, Sony's answer for every other id.
-`0x1f8` and `0x200` use another id space, so they're only probed. The first time the row builder asks about 139 and
-141, the log gets `dci.checks <alias> <answers> <vtable>`, with bit *i* of `<answers>` = Sony's answer from the
-table's *i*-th row. If 139 and 141 differ in a bit, that check is what greys DCI out. If they don't, the greying is
-decided outside this object, and the next suspects are Sony's run-time availability rules for File Format, such as
-`PRM_HAITA_setting_file_format_system_architecture` (it names DCI with the A7 IV's `IPSX` architecture) and
-`PRM_license_type_dci4k24p_available`.
-### Camera test (`alpha-dci-0.4`)
+The first time the row builder asks about 139 and 141, the log gets `dci.checks <alias> <answers> <vtable>`.
+
+### `alpha-dci-0.4` boot-looped the camera (2026-11-26)
+
+The screen lit up and the camera restarted, over and over, then stayed dark; nothing appeared on USB during the
+loop. 0.4's probe called the eight Sony functions above through a `static const` table of their addresses. The
+module is linked at its `appFw.so` address and nothing relocates it, but `appFw.so` is `ET_DYN` and loads at a
+nonzero base, so each entry pointed at an unmapped address (the built module held `0x1c0f12c`, … as is). The row
+builder asks about 139 and 141 during startup (the menu registrars run at every boot), so the first probe call
+crashed the app at every boot. The host test can't see it (addresses are right on the host), and the build's
+"needs relocations" check passed, because a `-no-pie` link resolves such pointers without a relocation.
+
+- **Build check:** the build compiles each source on its own first and refuses any absolute relocation into a
+  loaded section, naming each place (`_stored_addresses`). It refuses 0.4's sources with the eight table entries
+  and passes 0.3, `alpha-angle-0.4` and `main`.
+- **Recovery:** 0.4 and beta-0.2 differ only in `nflasha15`, so writing beta-0.2's `nflasha15` over Fastboot (Multi
+  port + RP2040 boot bridge) returns the camera to beta-0.2. The SD recovery tool's updater allowlist matches
+  neither v6.02's nor v0.1.3's updater initrd.
+
+### `alpha-dci-0.5`
+
+0.4's test, with the probe calling each function directly, like every other call into `appFw.so`. It no longer
+probes `0x1f8` and `0x200`: they look the id up in another table (141 is Camera Set Memory 1 there), and the probe
+runs at boot, so it makes no call it doesn't need. Bits 0–5 of `<answers>` are Sony's answers from `0x1a8`,
+`0x1b0`, `0x1f0`, `0x210`, `0x6f8` and `0x700`. If 139 and 141 differ in a bit, that check is what greys DCI out.
+If they don't, the greying is decided outside this object, and the next suspects are Sony's run-time availability
+rules for File Format, such as `PRM_HAITA_setting_file_format_system_architecture` (it names DCI with the A7 IV's
+`IPSX` architecture) and `PRM_license_type_dci4k24p_available`.
+
+Built, audit passed, module 48,348 bytes, no stored address. **Install it only with the Fastboot cable working**:
+it still runs new code in the menu at every boot.
+
+### Camera test (`alpha-dci-0.5`)
 
 1. In movie mode, open **MENU > Shooting > Image Quality > File Format**: is **XAVC S-I DCI 4K** listed?
 2. Choose it. In **Movie Settings > Rec Frame Rate**: 24p and 30p on NTSC, 25p on PAL?
